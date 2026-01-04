@@ -15,7 +15,6 @@ async function startTracking() {
     document.getElementById('setup-area').classList.add('hidden');
     document.getElementById('active-controls').classList.remove('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
-    document.getElementById('war-title').innerText = "Connecting to Torn City...";
     
     await updateWarClock();
     
@@ -33,18 +32,8 @@ async function updateWarClock() {
         const response = await fetch(`https://api.torn.com/faction/?selections=rankedwars&key=${currentApiKey}`);
         const data = await response.json();
         
-        if (data.error) {
-            document.getElementById('war-title').innerText = "API Error: " + data.error.error;
-            return;
-        }
-
         const sortedIds = Object.keys(data.rankedwars).sort((a, b) => b - a);
         const warData = data.rankedwars[sortedIds[0]];
-
-        if (!warData) {
-            document.getElementById('war-title').innerText = "No Active Ranked War Found";
-            return;
-        }
 
         const factions = Object.values(warData.factions);
         const f1 = factions[0];
@@ -54,22 +43,24 @@ async function updateWarClock() {
         const startTime = warData.war.start; 
         const currentLead = Math.abs(f1.score - f2.score);
         const leaderName = f1.score > f2.score ? f1.name : f2.name;
-        
-        // The API target lead that decays hourly
         const currentTargetLead = warData.war.target;
 
-        // STABLE DECAY CALCULATION
+        // --- THE STABILITY FIX ---
         const secondsElapsed = now - startTime;
-        const gracePeriod = 86400; // 24 Hours
+        const gracePeriod = 86400; // 24 hours
         
         let originalTarget;
+        
         if (secondsElapsed <= gracePeriod) {
             originalTarget = currentTargetLead;
         } else {
-            // Reverse engineering the original target based on hours passed
-            const hoursPastGrace = Math.floor((secondsElapsed - gracePeriod) / 3600);
-            // We use 0.01 (1%) and round to find the integer Torn started with
-            originalTarget = Math.round(currentTargetLead / (1 - (hoursPastGrace * 0.01)));
+            // Snap to the exact number of full hours passed since the grace period ended
+            const fullHoursPastGrace = Math.floor((secondsElapsed - gracePeriod) / 3600);
+            
+            // Formula: Current = Original * (1 - (0.01 * Hours))
+            // Therefore: Original = Current / (1 - (0.01 * Hours))
+            // We use Math.round because the starting target is always a whole number
+            originalTarget = Math.round(currentTargetLead / (1 - (fullHoursPastGrace * 0.01)));
         }
 
         const hourlyDecayAmount = originalTarget * 0.01;
@@ -78,13 +69,12 @@ async function updateWarClock() {
         if (currentLead >= currentTargetLead) {
             globalSecondsRemaining = 0;
         } else {
-            // How many points must the target drop to meet our current lead?
+            // Time to finish = (Current Target - Current Lead) / Decay Rate
             const pointsToClose = currentTargetLead - currentLead;
-            // How many seconds will that take at the current decay rate?
             globalSecondsRemaining = pointsToClose / decayPerSec;
         }
 
-        // Update UI Text
+        // Update UI
         document.getElementById('war-title').innerText = `${f1.name} vs ${f2.name}`;
         document.getElementById('f1-name').innerText = f1.name;
         document.getElementById('f1-score').innerText = f1.score.toLocaleString();
@@ -95,15 +85,12 @@ async function updateWarClock() {
             lead: currentLead,
             leader: leaderName,
             target: currentTargetLead,
-            start: startTime,
-            originalTarget: originalTarget
+            original: originalTarget
         };
 
         renderUI();
-
     } catch (e) {
         console.error("API Failure", e);
-        document.getElementById('war-title').innerText = "Connection Error";
     }
 }
 
@@ -119,26 +106,24 @@ function renderUI() {
     const stats = window.currentWarStats;
     if (!stats) return;
 
-    // Standard Countdown Timer
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
     const s = Math.floor(sec % 60);
     document.getElementById('countdown').innerText = 
         `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 
-    // Progress Bar: Lead vs Current Target
     const progressPercent = Math.min(100, (stats.lead / stats.target) * 100).toFixed(1);
     const vBar = document.getElementById('victory-bar');
     vBar.style.width = progressPercent + "%";
     vBar.innerText = progressPercent + "% TO VICTORY";
 
-    // Predicted Finish (TCT/GMT)
     const finishDate = new Date(Date.now() + (sec * 1000));
     const gmtString = finishDate.toUTCString().replace('GMT', 'TCT');
 
     document.getElementById('details').innerHTML = `
         Current Lead: <strong>${stats.lead.toLocaleString()}</strong> (Leader: ${stats.leader})<br>
         Required Lead Now: <strong>${stats.target.toLocaleString()}</strong><br>
+        Initial Starting Target: <strong>${stats.original.toLocaleString()}</strong><br>
         Points Until Victory: <strong>${Math.max(0, stats.target - stats.lead).toLocaleString()}</strong><br>
         <span style="color: #ff8c00; font-size: 1.1em; font-weight: bold; display: block; margin-top: 10px;">
             Predicted Finish: ${gmtString}
