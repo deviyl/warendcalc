@@ -9,36 +9,29 @@ async function startTracking() {
         alert("Please enter a valid Torn API key.");
         return;
     }
-    
     currentApiKey = keyInput;
-    
     document.getElementById('setup-area').style.display = 'none';
     document.getElementById('active-controls').style.display = 'block';
     
     await updateWarClock();
-    
     if (apiInterval) clearInterval(apiInterval);
     apiInterval = setInterval(updateWarClock, 30000);
-
     if (tickerInterval) clearInterval(tickerInterval);
     tickerInterval = setInterval(runTicker, 1000);
 }
 
 async function updateWarClock() {
     if (!currentApiKey) return;
-
     try {
         const response = await fetch(`https://api.torn.com/faction/?selections=rankedwars&key=${currentApiKey}`);
         const data = await response.json();
-        
         if (data.error) {
             document.getElementById('war-title').innerText = "API Error: " + data.error.error;
             return;
         }
 
-        const sortedWarIds = Object.keys(data.rankedwars).sort((a, b) => b - a);
-        const newestWarId = sortedWarIds[0]; 
-        const warData = data.rankedwars[newestWarId];
+        const sortedIds = Object.keys(data.rankedwars).sort((a, b) => b - a);
+        const warData = data.rankedwars[sortedIds[0]];
 
         const factions = Object.values(warData.factions);
         const f1 = factions[0];
@@ -48,18 +41,22 @@ async function updateWarClock() {
         const startTime = warData.war.start; 
         const currentLead = Math.abs(f1.score - f2.score);
         const leaderName = f1.score > f2.score ? f1.name : f2.name;
-        
         const originalTarget = warData.war.target;
-        const decayPerSec = (originalTarget * 0.01) / 3600; 
-        const decayStartSec = 86400; 
 
+        // Intersection Math (solving for the exact second the decay hits current lead)
+        const hourlyDecay = originalTarget * 0.01;
+        const decayPerSec = hourlyDecay / 3600;
+        const gracePeriod = 86400; // 24 hours
+
+        const timeElapsed = now - startTime;
+        
         if (currentLead >= originalTarget) {
             globalSecondsRemaining = 0;
         } else {
-            const secondsOfDecayNeeded = (originalTarget - currentLead) / decayPerSec;
-            const totalSecondsFromStartToFinish = secondsOfDecayNeeded + decayStartSec;
-            const timeElapsedSoFar = now - startTime;
-            globalSecondsRemaining = totalSecondsFromStartToFinish - timeElapsedSoFar;
+            // How many total seconds from start until the target decays to current lead?
+            const secondsNeededInDecay = (originalTarget - currentLead) / decayPerSec;
+            const totalSecondsToFinish = gracePeriod + secondsNeededInDecay;
+            globalSecondsRemaining = totalSecondsToFinish - timeElapsed;
         }
 
         document.getElementById('stats-area').style.display = 'grid';
@@ -77,10 +74,7 @@ async function updateWarClock() {
         };
 
         renderUI();
-
-    } catch (e) {
-        console.error(e);
-    }
+    } catch (e) { console.error(e); }
 }
 
 function runTicker() {
@@ -95,31 +89,32 @@ function renderUI() {
     const stats = window.currentWarStats;
     if (!stats) return;
 
-    // Timer display
+    // Display Timer
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
     const s = Math.floor(sec % 60);
     document.getElementById('countdown').innerText = 
         `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 
-    // Predicted Finish Calculation (GMT)
+    // Predicted Finish (GMT)
     const finishDate = new Date(Date.now() + (sec * 1000));
     const gmtString = finishDate.toUTCString().replace('GMT', 'TCT');
 
-    // --- ADJUSTED DECAY LOGIC TO MATCH TORN ---
+    // --- REFINED HOURLY DECAY DISPLAY ---
     const now = Math.floor(Date.now() / 1000);
-    const totalSecondsElapsed = now - stats.start;
-    const hoursElapsed = totalSecondsElapsed / 3600;
+    const secondsElapsed = now - stats.start;
+    const gracePeriod = 86400;
     
     let currentTarget = stats.target;
     
-    if (hoursElapsed > 24) {
-        // Calculate how many WHOLE hours of decay have occurred
-        const decayHours = Math.floor(hoursElapsed - 24);
-        const hourlyDecayVal = stats.target * 0.01;
+    if (secondsElapsed > gracePeriod) {
+        // Calculate ONLY completed hour blocks after the first 24h
+        const secondsInDecayPhase = secondsElapsed - gracePeriod;
+        const fullHoursDecayed = Math.floor(secondsInDecayPhase / 3600);
+        const totalDeduction = (stats.target * 0.01) * fullHoursDecayed;
         
-        // We use Math.round because Torn usually rounds the final display target
-        currentTarget = Math.round(stats.target - (hourlyDecayVal * decayHours));
+        // Use Math.floor to match Torn's likely integer rounding
+        currentTarget = Math.floor(stats.target - totalDeduction);
     }
 
     document.getElementById('details').innerHTML = `
