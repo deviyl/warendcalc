@@ -1,28 +1,30 @@
 let updateInterval;
+let currentApiKey = "";
 
-function saveKey() {
-    const key = document.getElementById('api-key').value;
-    if (key.length < 16) {
+async function startTracking() {
+    const keyInput = document.getElementById('api-key').value;
+    if (keyInput.length < 16) {
         alert("Please enter a valid Torn API key.");
         return;
     }
-    localStorage.setItem('torn_api_key', key);
-    startTracking();
-}
-
-async function startTracking() {
-    const key = localStorage.getItem('torn_api_key');
-    if (!key) return;
-
+    
+    currentApiKey = keyInput;
+    
+    // UI Transitions
+    document.getElementById('setup-area').style.display = 'none';
+    document.getElementById('active-controls').style.display = 'block';
+    
     // Run immediately then every 30s
-    updateWarClock(key);
+    updateWarClock();
     if (updateInterval) clearInterval(updateInterval);
-    updateInterval = setInterval(() => updateWarClock(key), 30000);
+    updateInterval = setInterval(updateWarClock, 30000);
 }
 
-async function updateWarClock(key) {
+async function updateWarClock() {
+    if (!currentApiKey) return;
+
     try {
-        const response = await fetch(`https://api.torn.com/faction/?selections=rankedwars&key=${key}`);
+        const response = await fetch(`https://api.torn.com/faction/?selections=rankedwars&key=${currentApiKey}`);
         const data = await response.json();
         
         if (data.error) {
@@ -30,26 +32,26 @@ async function updateWarClock(key) {
             return;
         }
 
-        // We pull the VERY FIRST key in the object, which is the most recent/active war
+        // Pull the FIRST key in the object (most recent war)
         const firstWarId = Object.keys(data.rankedwars)[0];
-        const war = data.rankedwars[firstWarId];
+        const warData = data.rankedwars[firstWarId];
 
-        if (!war) {
+        if (!warData) {
             document.getElementById('war-title').innerText = "No Ranked War found.";
             return;
         }
 
-        const factions = Object.values(war.factions);
+        const factions = Object.values(warData.factions);
         const f1 = factions[0];
         const f2 = factions[1];
 
         // Scoring Logic
         const now = Math.floor(Date.now() / 1000);
-        const startTime = war.war.start; // Note: In your JSON 'start' is inside a 'war' object
+        const startTime = warData.war.start; 
         const currentLead = Math.abs(f1.score - f2.score);
         const leader = f1.score > f2.score ? f1 : f2;
         
-        const originalTarget = war.war.target;
+        const originalTarget = warData.war.target;
         const decayPerSec = (originalTarget * 0.01) / 3600; 
         const decayStartSec = 86400; // 24 hours
 
@@ -58,7 +60,7 @@ async function updateWarClock(key) {
         if (currentLead >= originalTarget) {
             secondsRemaining = 0;
         } else {
-            // Formula: Time needed for decay to drop target to current lead level
+            // Solve for X: Intersection of Current Lead and Decaying Target
             const secondsOfDecayNeeded = (originalTarget - currentLead) / decayPerSec;
             const totalSecondsFromStartToFinish = secondsOfDecayNeeded + decayStartSec;
             const timeElapsedSoFar = now - startTime;
@@ -70,7 +72,7 @@ async function updateWarClock(key) {
 
     } catch (e) {
         console.error(e);
-        document.getElementById('war-title').innerText = "Data Error";
+        document.getElementById('war-title').innerText = "Data Connection Error";
     }
 }
 
@@ -82,7 +84,6 @@ function updateUI(f1, f2, sec, lead, leaderName, originalTarget, startTime, now)
     document.getElementById('f2-name').innerText = f2.name;
     document.getElementById('f2-score').innerText = f2.score.toLocaleString();
 
-    // Decay calculation for visual display
     const decayStart = startTime + 86400;
     let currentTarget = originalTarget;
     if (now > decayStart) {
@@ -92,7 +93,7 @@ function updateUI(f1, f2, sec, lead, leaderName, originalTarget, startTime, now)
 
     if (sec <= 0) {
         document.getElementById('countdown').innerText = "END IMMINENT";
-        document.getElementById('details').innerHTML = `<strong>${leaderName}</strong> has met the decay target.`;
+        document.getElementById('details').innerHTML = `<strong>${leaderName}</strong> has achieved the required lead.`;
     } else {
         const h = Math.floor(sec / 3600);
         const m = Math.floor((sec % 3600) / 60);
@@ -102,14 +103,9 @@ function updateUI(f1, f2, sec, lead, leaderName, originalTarget, startTime, now)
             `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         
         document.getElementById('details').innerHTML = `
-            Leader: <strong>${leaderName}</strong> (+${lead.toLocaleString()})<br>
-            Current Target Lead: <strong>${Math.max(0, Math.floor(currentTarget)).toLocaleString()}</strong>
+            Current Lead: <strong>${lead.toLocaleString()}</strong><br>
+            Winning Target: <strong>${Math.max(0, Math.floor(currentTarget)).toLocaleString()}</strong><br>
+            <small style="color:#777">Updated at: ${new Date().toLocaleTimeString()}</small>
         `;
     }
-}
-
-// Auto-load if key exists
-if (localStorage.getItem('torn_api_key')) {
-    document.getElementById('api-key').value = localStorage.getItem('torn_api_key');
-    startTracking();
 }
