@@ -1,0 +1,138 @@
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: #111;
+    color: #e0e0e0;
+    text-align: center;
+    padding: 40px 20px;
+    margin: 0;
+}
+
+.container {
+    background: #222;
+    padding: 30px;
+    border-radius: 12px;
+    display: inline-block;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    min-width: 450px;
+    border: 1px solid #333;
+}
+
+h1 {
+    margin-top: 0;
+    color: #fff;
+    font-size: 1.8em;
+    letter-spacing: 1px;
+}
+
+input {
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid #444;
+    background: #000;
+    color: #00ff00;
+    width: 250px;
+    margin-bottom: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 1em;
+}
+
+button {
+    padding: 12px 20px;
+    border-radius: 4px;
+    border: none;
+    background: #3772ff;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background: #2558d6;
+}
+
+button.secondary {
+    background: #333;
+    margin: 5px;
+    font-size: 0.8em;
+}
+
+button.secondary:hover {
+    background: #444;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.timer {
+    font-size: 4em;
+    color: #ff4747;
+    margin: 20px 0;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    text-shadow: 0 0 15px rgba(255, 71, 71, 0.3);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.faction-card {
+    background: #1a1a1a;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.faction-name {
+    color: #3772ff;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.score {
+    font-size: 1.6em;
+    font-weight: bold;
+    color: #fff;
+}
+
+.progress-container {
+    width: 100%;
+    background-color: #000;
+    border-radius: 20px;
+    margin: 25px 0;
+    height: 30px;
+    overflow: hidden;
+    border: 1px solid #444;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #3772ff, #00ff00);
+    transition: width 0.8s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85em;
+    font-weight: bold;
+    color: #000;
+    white-space: nowrap;
+}
+
+#details {
+    line-height: 1.8;
+    margin-top: 15px;
+    font-size: 1em;
+    color: #bbb;
+}
+
+strong {
+    color: #fff;
+}
