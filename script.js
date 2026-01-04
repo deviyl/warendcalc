@@ -95,26 +95,36 @@ function renderUI() {
     const stats = window.currentWarStats;
     if (!stats) return;
 
+    // Timer display
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
     const s = Math.floor(sec % 60);
     document.getElementById('countdown').innerText = 
         `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 
+    // Predicted Finish Calculation (GMT)
     const finishDate = new Date(Date.now() + (sec * 1000));
     const gmtString = finishDate.toUTCString().replace('GMT', 'TCT');
 
+    // --- ADJUSTED DECAY LOGIC TO MATCH TORN ---
     const now = Math.floor(Date.now() / 1000);
-    const decayStart = stats.start + 86400;
+    const totalSecondsElapsed = now - stats.start;
+    const hoursElapsed = totalSecondsElapsed / 3600;
+    
     let currentTarget = stats.target;
-    if (now > decayStart) {
-        const decayPerSec = (stats.target * 0.01) / 3600;
-        currentTarget = stats.target - (decayPerSec * (now - decayStart));
+    
+    if (hoursElapsed > 24) {
+        // Calculate how many WHOLE hours of decay have occurred
+        const decayHours = Math.floor(hoursElapsed - 24);
+        const hourlyDecayVal = stats.target * 0.01;
+        
+        // We use Math.round because Torn usually rounds the final display target
+        currentTarget = Math.round(stats.target - (hourlyDecayVal * decayHours));
     }
 
     document.getElementById('details').innerHTML = `
         Leader: <strong>${stats.leader}</strong> (+${stats.lead.toLocaleString()})<br>
-        Required Lead Now: <strong>${Math.max(0, Math.floor(currentTarget)).toLocaleString()}</strong><br>
+        Required Lead Now: <strong>${currentTarget.toLocaleString()}</strong><br>
         <span style="color: #00ff00; font-size: 1.1em;">Predicted Finish: ${gmtString}</span>
     `;
 }
