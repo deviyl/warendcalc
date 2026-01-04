@@ -10,11 +10,9 @@ async function startTracking() {
     
     currentApiKey = keyInput;
     
-    // UI Transitions
     document.getElementById('setup-area').style.display = 'none';
     document.getElementById('active-controls').style.display = 'block';
     
-    // Run immediately then every 30s
     updateWarClock();
     if (updateInterval) clearInterval(updateInterval);
     updateInterval = setInterval(updateWarClock, 30000);
@@ -32,9 +30,11 @@ async function updateWarClock() {
             return;
         }
 
-        // Pull the FIRST key in the object (most recent war)
-        const firstWarId = Object.keys(data.rankedwars)[0];
-        const warData = data.rankedwars[firstWarId];
+        // --- THE FIX: FLIP/SORT THE DATA ---
+        // Get all War IDs, convert to numbers, and sort Largest to Smallest
+        const sortedWarIds = Object.keys(data.rankedwars).sort((a, b) => b - a);
+        const newestWarId = sortedWarIds[0]; 
+        const warData = data.rankedwars[newestWarId];
 
         if (!warData) {
             document.getElementById('war-title').innerText = "No Ranked War found.";
@@ -53,18 +53,16 @@ async function updateWarClock() {
         
         const originalTarget = warData.war.target;
         const decayPerSec = (originalTarget * 0.01) / 3600; 
-        const decayStartSec = 86400; // 24 hours
+        const decayStartSec = 86400; 
 
         let secondsRemaining = 0;
 
         if (currentLead >= originalTarget) {
             secondsRemaining = 0;
         } else {
-            // Solve for X: Intersection of Current Lead and Decaying Target
             const secondsOfDecayNeeded = (originalTarget - currentLead) / decayPerSec;
             const totalSecondsFromStartToFinish = secondsOfDecayNeeded + decayStartSec;
             const timeElapsedSoFar = now - startTime;
-            
             secondsRemaining = totalSecondsFromStartToFinish - timeElapsedSoFar;
         }
 
