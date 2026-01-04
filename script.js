@@ -30,15 +30,14 @@ async function updateWarClock(key) {
             return;
         }
 
-        // Convert object to array and sort by ID descending (newest war first)
-        const warList = Object.values(data.rankedwars);
-        if (!warList || warList.length === 0) {
-            document.getElementById('war-title').innerText = "No active Ranked War found.";
+        // We pull the VERY FIRST key in the object, which is the most recent/active war
+        const firstWarId = Object.keys(data.rankedwars)[0];
+        const war = data.rankedwars[firstWarId];
+
+        if (!war) {
+            document.getElementById('war-title').innerText = "No Ranked War found.";
             return;
         }
-        
-        warList.sort((a, b) => b.id - a.id);
-        const war = warList[0];
 
         const factions = Object.values(war.factions);
         const f1 = factions[0];
@@ -46,26 +45,20 @@ async function updateWarClock(key) {
 
         // Scoring Logic
         const now = Math.floor(Date.now() / 1000);
-        const startTime = war.war_start;
+        const startTime = war.war.start; // Note: In your JSON 'start' is inside a 'war' object
         const currentLead = Math.abs(f1.score - f2.score);
         const leader = f1.score > f2.score ? f1 : f2;
         
-        const originalTarget = war.target;
-        const decayPerSec = (originalTarget * 0.01) / 3600; // 1% of original target per hour
+        const originalTarget = war.war.target;
+        const decayPerSec = (originalTarget * 0.01) / 3600; 
         const decayStartSec = 86400; // 24 hours
 
         let secondsRemaining = 0;
 
         if (currentLead >= originalTarget) {
-            // Target met before decay
             secondsRemaining = 0;
         } else {
-            /* The formula for the winning condition is: 
-               Current Lead >= Original Target - [DecayPerSec * (TotalElapsedSeconds - 24 Hours)]
-               
-               We solve for TotalElapsedSeconds (T):
-               T = ((Original Target - Current Lead) / DecayPerSec) + 24 Hours
-            */
+            // Formula: Time needed for decay to drop target to current lead level
             const secondsOfDecayNeeded = (originalTarget - currentLead) / decayPerSec;
             const totalSecondsFromStartToFinish = secondsOfDecayNeeded + decayStartSec;
             const timeElapsedSoFar = now - startTime;
@@ -77,7 +70,7 @@ async function updateWarClock(key) {
 
     } catch (e) {
         console.error(e);
-        document.getElementById('war-title').innerText = "Connection Error";
+        document.getElementById('war-title').innerText = "Data Error";
     }
 }
 
@@ -89,7 +82,7 @@ function updateUI(f1, f2, sec, lead, leaderName, originalTarget, startTime, now)
     document.getElementById('f2-name').innerText = f2.name;
     document.getElementById('f2-score').innerText = f2.score.toLocaleString();
 
-    // Calculate current target to show the "Target Lead" decreasing
+    // Decay calculation for visual display
     const decayStart = startTime + 86400;
     let currentTarget = originalTarget;
     if (now > decayStart) {
@@ -99,7 +92,7 @@ function updateUI(f1, f2, sec, lead, leaderName, originalTarget, startTime, now)
 
     if (sec <= 0) {
         document.getElementById('countdown').innerText = "END IMMINENT";
-        document.getElementById('details').innerText = `${leaderName} has achieved the required lead.`;
+        document.getElementById('details').innerHTML = `<strong>${leaderName}</strong> has met the decay target.`;
     } else {
         const h = Math.floor(sec / 3600);
         const m = Math.floor((sec % 3600) / 60);
@@ -110,7 +103,7 @@ function updateUI(f1, f2, sec, lead, leaderName, originalTarget, startTime, now)
         
         document.getElementById('details').innerHTML = `
             Leader: <strong>${leaderName}</strong> (+${lead.toLocaleString()})<br>
-            Current Target Lead: <strong>${Math.floor(currentTarget).toLocaleString()}</strong>
+            Current Target Lead: <strong>${Math.max(0, Math.floor(currentTarget)).toLocaleString()}</strong>
         `;
     }
 }
