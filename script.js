@@ -30,11 +30,15 @@ async function updateWarClock(key) {
             return;
         }
 
-        const war = Object.values(data.rankedwars)[0];
-        if (!war) {
+        // Convert object to array and sort by ID descending (newest war first)
+        const warList = Object.values(data.rankedwars);
+        if (!warList || warList.length === 0) {
             document.getElementById('war-title').innerText = "No active Ranked War found.";
             return;
         }
+        
+        warList.sort((a, b) => b.id - a.id);
+        const war = warList[0];
 
         const factions = Object.values(war.factions);
         const f1 = factions[0];
@@ -42,42 +46,56 @@ async function updateWarClock(key) {
 
         // Scoring Logic
         const now = Math.floor(Date.now() / 1000);
-        const timeElapsed = now - war.war_start;
+        const startTime = war.war_start;
         const currentLead = Math.abs(f1.score - f2.score);
         const leader = f1.score > f2.score ? f1 : f2;
         
         const originalTarget = war.target;
-        const decayPerSec = (originalTarget * 0.01) / 3600;
-        const decayStart = 86400; // 24 hours
+        const decayPerSec = (originalTarget * 0.01) / 3600; // 1% of original target per hour
+        const decayStartSec = 86400; // 24 hours
 
         let secondsRemaining = 0;
 
         if (currentLead >= originalTarget) {
+            // Target met before decay
             secondsRemaining = 0;
         } else {
-            // Formula for remaining time based on decay:
-            // Remaining Lead Needed = OriginalTarget - (DecayPerSec * (TotalTime - 24h))
-            // We solve for the moment CurrentLead = DecayingTarget
-            const leadDeficit = originalTarget - currentLead;
-            const totalSecNeededFromDecayStart = leadDeficit / decayPerSec;
-            const totalSecFromWarStart = totalSecNeededFromDecayStart + decayStart;
-            secondsRemaining = totalSecFromWarStart - timeElapsed;
+            /* The formula for the winning condition is: 
+               Current Lead >= Original Target - [DecayPerSec * (TotalElapsedSeconds - 24 Hours)]
+               
+               We solve for TotalElapsedSeconds (T):
+               T = ((Original Target - Current Lead) / DecayPerSec) + 24 Hours
+            */
+            const secondsOfDecayNeeded = (originalTarget - currentLead) / decayPerSec;
+            const totalSecondsFromStartToFinish = secondsOfDecayNeeded + decayStartSec;
+            const timeElapsedSoFar = now - startTime;
+            
+            secondsRemaining = totalSecondsFromStartToFinish - timeElapsedSoFar;
         }
 
-        updateUI(f1, f2, secondsRemaining, currentLead, leader.name);
+        updateUI(f1, f2, secondsRemaining, currentLead, leader.name, originalTarget, startTime, now);
 
     } catch (e) {
         console.error(e);
+        document.getElementById('war-title').innerText = "Connection Error";
     }
 }
 
-function updateUI(f1, f2, sec, lead, leaderName) {
+function updateUI(f1, f2, sec, lead, leaderName, originalTarget, startTime, now) {
     document.getElementById('stats-area').style.display = 'grid';
     document.getElementById('war-title').innerText = `${f1.name} vs ${f2.name}`;
     document.getElementById('f1-name').innerText = f1.name;
     document.getElementById('f1-score').innerText = f1.score.toLocaleString();
     document.getElementById('f2-name').innerText = f2.name;
     document.getElementById('f2-score').innerText = f2.score.toLocaleString();
+
+    // Calculate current target to show the "Target Lead" decreasing
+    const decayStart = startTime + 86400;
+    let currentTarget = originalTarget;
+    if (now > decayStart) {
+        const decayPerSec = (originalTarget * 0.01) / 3600;
+        currentTarget = originalTarget - (decayPerSec * (now - decayStart));
+    }
 
     if (sec <= 0) {
         document.getElementById('countdown').innerText = "END IMMINENT";
@@ -86,9 +104,14 @@ function updateUI(f1, f2, sec, lead, leaderName) {
         const h = Math.floor(sec / 3600);
         const m = Math.floor((sec % 3600) / 60);
         const s = Math.floor(sec % 60);
+        
         document.getElementById('countdown').innerText = 
             `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        document.getElementById('details').innerText = `Leader: ${leaderName} (+${lead.toLocaleString()})`;
+        
+        document.getElementById('details').innerHTML = `
+            Leader: <strong>${leaderName}</strong> (+${lead.toLocaleString()})<br>
+            Current Target Lead: <strong>${Math.floor(currentTarget).toLocaleString()}</strong>
+        `;
     }
 }
 
