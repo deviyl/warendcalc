@@ -45,39 +45,39 @@ async function updateWarClock() {
         const leaderName = f1.score > f2.score ? f1.name : f2.name;
         const currentTargetLead = warData.war.target;
 
-        // --- THE "ITERATION" LOGIC ---
+        // --- DYNAMIC REPEATABLE CALCULATION ---
         const secondsElapsed = now - startTime;
         const gracePeriod = 86400; // 24 hours
         
         let originalTarget;
         
         if (secondsElapsed < gracePeriod) {
+            // No decay has occurred yet
             originalTarget = currentTargetLead;
         } else {
-            /**
-             * Based on your data: 
-             * At 25 hours past grace (49h total), 25 decays have occurred.
-             * Iterations = Math.floor((Elapsed - 24h) / 3600) + 1
-             */
+            // Calculate iterations: 1st decay happens at exactly 24h (Iteration 1)
+            // 2nd decay at 25h, etc.
             const hoursPastGrace = Math.floor((secondsElapsed - gracePeriod) / 3600);
             const iterations = hoursPastGrace + 1;
             
-            // Reverse: CurrentTarget = Original - (Original * 0.01 * Iterations)
-            // Original = CurrentTarget / (1 - (0.01 * Iterations))
+            // Reverse engineering the original starting target
+            // Original = Current / (1 - (0.01 * iterations))
             originalTarget = Math.round(currentTargetLead / (1 - (0.01 * iterations)));
         }
 
+        // Once original is found, decay rate is fixed for the duration of this war
         const hourlyDecayAmount = originalTarget * 0.01;
         const decayPerSec = hourlyDecayAmount / 3600;
 
         if (currentLead >= currentTargetLead) {
             globalSecondsRemaining = 0;
         } else {
-            // Points to close = Current dynamic target - our current frozen lead
+            // Seconds to finish = Points remaining / points dropped per second
             const pointsToClose = currentTargetLead - currentLead;
             globalSecondsRemaining = pointsToClose / decayPerSec;
         }
 
+        // Update UI Text
         document.getElementById('war-title').innerText = `${f1.name} vs ${f2.name}`;
         document.getElementById('f1-name').innerText = f1.name;
         document.getElementById('f1-score').innerText = f1.score.toLocaleString();
