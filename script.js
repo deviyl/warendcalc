@@ -45,22 +45,26 @@ async function updateWarClock() {
         const leaderName = f1.score > f2.score ? f1.name : f2.name;
         const currentTargetLead = warData.war.target;
 
-        // --- THE STABILITY FIX ---
+        // --- THE "ITERATION" LOGIC ---
         const secondsElapsed = now - startTime;
         const gracePeriod = 86400; // 24 hours
         
         let originalTarget;
         
-        if (secondsElapsed <= gracePeriod) {
+        if (secondsElapsed < gracePeriod) {
             originalTarget = currentTargetLead;
         } else {
-            // Snap to the exact number of full hours passed since the grace period ended
-            const fullHoursPastGrace = Math.floor((secondsElapsed - gracePeriod) / 3600);
+            /**
+             * Based on your data: 
+             * At 25 hours past grace (49h total), 25 decays have occurred.
+             * Iterations = Math.floor((Elapsed - 24h) / 3600) + 1
+             */
+            const hoursPastGrace = Math.floor((secondsElapsed - gracePeriod) / 3600);
+            const iterations = hoursPastGrace + 1;
             
-            // Formula: Current = Original * (1 - (0.01 * Hours))
-            // Therefore: Original = Current / (1 - (0.01 * Hours))
-            // We use Math.round because the starting target is always a whole number
-            originalTarget = Math.round(currentTargetLead / (1 - (fullHoursPastGrace * 0.01)));
+            // Reverse: CurrentTarget = Original - (Original * 0.01 * Iterations)
+            // Original = CurrentTarget / (1 - (0.01 * Iterations))
+            originalTarget = Math.round(currentTargetLead / (1 - (0.01 * iterations)));
         }
 
         const hourlyDecayAmount = originalTarget * 0.01;
@@ -69,12 +73,11 @@ async function updateWarClock() {
         if (currentLead >= currentTargetLead) {
             globalSecondsRemaining = 0;
         } else {
-            // Time to finish = (Current Target - Current Lead) / Decay Rate
+            // Points to close = Current dynamic target - our current frozen lead
             const pointsToClose = currentTargetLead - currentLead;
             globalSecondsRemaining = pointsToClose / decayPerSec;
         }
 
-        // Update UI
         document.getElementById('war-title').innerText = `${f1.name} vs ${f2.name}`;
         document.getElementById('f1-name').innerText = f1.name;
         document.getElementById('f1-score').innerText = f1.score.toLocaleString();
@@ -123,7 +126,7 @@ function renderUI() {
     document.getElementById('details').innerHTML = `
         Current Lead: <strong>${stats.lead.toLocaleString()}</strong> (Leader: ${stats.leader})<br>
         Required Lead Now: <strong>${stats.target.toLocaleString()}</strong><br>
-        Initial Starting Target: <strong>${stats.original.toLocaleString()}</strong><br>
+        Original War Target: <strong>${stats.original.toLocaleString()}</strong><br>
         Points Until Victory: <strong>${Math.max(0, stats.target - stats.lead).toLocaleString()}</strong><br>
         <span style="color: #ff8c00; font-size: 1.1em; font-weight: bold; display: block; margin-top: 10px;">
             Predicted Finish: ${gmtString}
