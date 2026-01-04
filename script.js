@@ -2,7 +2,6 @@ let apiInterval;
 let tickerInterval;
 let currentApiKey = "";
 let globalSecondsRemaining = 0;
-let lastUpdateTimestamp = 0;
 
 async function startTracking() {
     const keyInput = document.getElementById('api-key').value;
@@ -16,14 +15,11 @@ async function startTracking() {
     document.getElementById('setup-area').style.display = 'none';
     document.getElementById('active-controls').style.display = 'block';
     
-    // Initial fetch
     await updateWarClock();
     
-    // API updates every 30 seconds
     if (apiInterval) clearInterval(apiInterval);
     apiInterval = setInterval(updateWarClock, 30000);
 
-    // UI Ticker updates every 1 second
     if (tickerInterval) clearInterval(tickerInterval);
     tickerInterval = setInterval(runTicker, 1000);
 }
@@ -66,7 +62,6 @@ async function updateWarClock() {
             globalSecondsRemaining = totalSecondsFromStartToFinish - timeElapsedSoFar;
         }
 
-        // Update static UI elements
         document.getElementById('stats-area').style.display = 'grid';
         document.getElementById('war-title').innerText = `${f1.name} vs ${f2.name}`;
         document.getElementById('f1-name').innerText = f1.name;
@@ -74,7 +69,6 @@ async function updateWarClock() {
         document.getElementById('f2-name').innerText = f2.name;
         document.getElementById('f2-score').innerText = f2.score.toLocaleString();
         
-        // Save the lead and leader for the ticker to use
         window.currentWarStats = {
             lead: currentLead,
             leader: leaderName,
@@ -82,7 +76,6 @@ async function updateWarClock() {
             start: startTime
         };
 
-        lastUpdateTimestamp = now;
         renderUI();
 
     } catch (e) {
@@ -102,18 +95,15 @@ function renderUI() {
     const stats = window.currentWarStats;
     if (!stats) return;
 
-    // Timer display
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
     const s = Math.floor(sec % 60);
     document.getElementById('countdown').innerText = 
         `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 
-    // Predicted Finish Calculation (GMT)
     const finishDate = new Date(Date.now() + (sec * 1000));
-    const gmtString = finishDate.toUTCString().replace('GMT', 'TCT'); // Torn uses GMT/UTC as TCT
+    const gmtString = finishDate.toUTCString().replace('GMT', 'TCT');
 
-    // Current Decaying Target calculation
     const now = Math.floor(Date.now() / 1000);
     const decayStart = stats.start + 86400;
     let currentTarget = stats.target;
@@ -125,7 +115,6 @@ function renderUI() {
     document.getElementById('details').innerHTML = `
         Leader: <strong>${stats.leader}</strong> (+${stats.lead.toLocaleString()})<br>
         Required Lead Now: <strong>${Math.max(0, Math.floor(currentTarget)).toLocaleString()}</strong><br>
-        <span style="color: #00ff00">Predicted Finish: ${gmtString}</span><br>
-        <small style="color:#777">Data Sync: ${new Date(lastUpdateTimestamp * 1000).toUTCString()}</small>
+        <span style="color: #00ff00; font-size: 1.1em;">Predicted Finish: ${gmtString}</span>
     `;
 }
