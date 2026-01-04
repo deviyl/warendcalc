@@ -1,7 +1,7 @@
 let apiInterval;
 let tickerInterval;
 let currentApiKey = "";
-let globalSecondsRemaining = 0;
+let finishLineTimestamp = 0; // Fixed "Point of Victory" in time
 
 async function startTracking() {
     const keyInput = document.getElementById('api-key').value.trim();
@@ -11,7 +11,6 @@ async function startTracking() {
     }
     
     currentApiKey = keyInput;
-    
     document.getElementById('setup-area').classList.add('hidden');
     document.getElementById('active-controls').classList.remove('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
@@ -45,39 +44,36 @@ async function updateWarClock() {
         const leaderName = f1.score > f2.score ? f1.name : f2.name;
         const currentTargetLead = warData.war.target;
 
-        // --- DYNAMIC REPEATABLE CALCULATION ---
+        // 1. REVERSE ENGINEER THE STARTING TARGET
         const secondsElapsed = now - startTime;
-        const gracePeriod = 86400; // 24 hours
-        
+        const gracePeriod = 86400; // 24 Hours
         let originalTarget;
         
         if (secondsElapsed < gracePeriod) {
-            // No decay has occurred yet
             originalTarget = currentTargetLead;
         } else {
-            // Calculate iterations: 1st decay happens at exactly 24h (Iteration 1)
-            // 2nd decay at 25h, etc.
+            // How many times has it decayed already? (N+1 logic)
             const hoursPastGrace = Math.floor((secondsElapsed - gracePeriod) / 3600);
-            const iterations = hoursPastGrace + 1;
-            
-            // Reverse engineering the original starting target
-            // Original = Current / (1 - (0.01 * iterations))
-            originalTarget = Math.round(currentTargetLead / (1 - (0.01 * iterations)));
+            const currentIterations = hoursPastGrace + 1;
+            originalTarget = Math.round(currentTargetLead / (1 - (0.01 * currentIterations)));
         }
 
-        // Once original is found, decay rate is fixed for the duration of this war
-        const hourlyDecayAmount = originalTarget * 0.01;
-        const decayPerSec = hourlyDecayAmount / 3600;
+        // 2. FIND THE SPECIFIC ITERATION THAT ENDS THE WAR
+        // Since points are frozen, we just need to know which iteration makes 
+        // Original * (1 - (0.01 * Iterations)) <= currentLead
+        const pointsToDecay = originalTarget - currentLead;
+        const totalIterationsNeeded = Math.ceil(pointsToCloseMath(originalTarget, currentLead));
 
-        if (currentLead >= currentTargetLead) {
-            globalSecondsRemaining = 0;
-        } else {
-            // Seconds to finish = Points remaining / points dropped per second
-            const pointsToClose = currentTargetLead - currentLead;
-            globalSecondsRemaining = pointsToClose / decayPerSec;
+        function pointsToCloseMath(orig, lead) {
+            return (orig - lead) / (orig * 0.01);
         }
 
-        // Update UI Text
+        // 3. SET FIXED FINISH TIMESTAMP
+        // Finish Line = Start + 24h Grace + (Iteration Count - 1) hours
+        // (Minus 1 because the first iteration triggers exactly at the 24h mark)
+        finishLineTimestamp = startTime + gracePeriod + (Math.ceil(totalIterationsNeeded - 1) * 3600);
+
+        // Update Scoreboard UI
         document.getElementById('war-title').innerText = `${f1.name} vs ${f2.name}`;
         document.getElementById('f1-name').innerText = f1.name;
         document.getElementById('f1-score').innerText = f1.score.toLocaleString();
@@ -98,36 +94,36 @@ async function updateWarClock() {
 }
 
 function runTicker() {
-    if (globalSecondsRemaining > 0) {
-        globalSecondsRemaining--;
-        renderUI();
-    }
+    renderUI();
 }
 
 function renderUI() {
-    const sec = Math.max(0, Math.floor(globalSecondsRemaining));
+    const now = Math.floor(Date.now() / 1000);
+    const sec = Math.max(0, finishLineTimestamp - now);
     const stats = window.currentWarStats;
     if (!stats) return;
 
+    // Display Timer (HH:MM:SS)
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
     const s = Math.floor(sec % 60);
     document.getElementById('countdown').innerText = 
         `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 
+    // Victory Bar (Percentage of lead vs current requirement)
     const progressPercent = Math.min(100, (stats.lead / stats.target) * 100).toFixed(1);
     const vBar = document.getElementById('victory-bar');
     vBar.style.width = progressPercent + "%";
     vBar.innerText = progressPercent + "% TO VICTORY";
 
-    const finishDate = new Date(Date.now() + (sec * 1000));
+    // Predicted Finish (TCT)
+    const finishDate = new Date(finishLineTimestamp * 1000);
     const gmtString = finishDate.toUTCString().replace('GMT', 'TCT');
 
     document.getElementById('details').innerHTML = `
         Current Lead: <strong>${stats.lead.toLocaleString()}</strong> (Leader: ${stats.leader})<br>
         Required Lead Now: <strong>${stats.target.toLocaleString()}</strong><br>
         Original War Target: <strong>${stats.original.toLocaleString()}</strong><br>
-        Points Until Victory: <strong>${Math.max(0, stats.target - stats.lead).toLocaleString()}</strong><br>
         <span style="color: #ff8c00; font-size: 1.1em; font-weight: bold; display: block; margin-top: 10px;">
             Predicted Finish: ${gmtString}
         </span>
