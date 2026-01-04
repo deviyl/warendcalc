@@ -1,5 +1,8 @@
-let updateInterval;
+let apiInterval;
+let tickerInterval;
 let currentApiKey = "";
+let globalSecondsRemaining = 0;
+let lastUpdateTimestamp = 0;
 
 async function startTracking() {
     const keyInput = document.getElementById('api-key').value;
@@ -13,9 +16,16 @@ async function startTracking() {
     document.getElementById('setup-area').style.display = 'none';
     document.getElementById('active-controls').style.display = 'block';
     
-    updateWarClock();
-    if (updateInterval) clearInterval(updateInterval);
-    updateInterval = setInterval(updateWarClock, 30000);
+    // Initial fetch
+    await updateWarClock();
+    
+    // API updates every 30 seconds
+    if (apiInterval) clearInterval(apiInterval);
+    apiInterval = setInterval(updateWarClock, 30000);
+
+    // UI Ticker updates every 1 second
+    if (tickerInterval) clearInterval(tickerInterval);
+    tickerInterval = setInterval(runTicker, 1000);
 }
 
 async function updateWarClock() {
@@ -30,80 +40,92 @@ async function updateWarClock() {
             return;
         }
 
-        // --- THE FIX: FLIP/SORT THE DATA ---
-        // Get all War IDs, convert to numbers, and sort Largest to Smallest
         const sortedWarIds = Object.keys(data.rankedwars).sort((a, b) => b - a);
         const newestWarId = sortedWarIds[0]; 
         const warData = data.rankedwars[newestWarId];
-
-        if (!warData) {
-            document.getElementById('war-title').innerText = "No Ranked War found.";
-            return;
-        }
 
         const factions = Object.values(warData.factions);
         const f1 = factions[0];
         const f2 = factions[1];
 
-        // Scoring Logic
         const now = Math.floor(Date.now() / 1000);
         const startTime = warData.war.start; 
         const currentLead = Math.abs(f1.score - f2.score);
-        const leader = f1.score > f2.score ? f1 : f2;
+        const leaderName = f1.score > f2.score ? f1.name : f2.name;
         
         const originalTarget = warData.war.target;
         const decayPerSec = (originalTarget * 0.01) / 3600; 
         const decayStartSec = 86400; 
 
-        let secondsRemaining = 0;
-
         if (currentLead >= originalTarget) {
-            secondsRemaining = 0;
+            globalSecondsRemaining = 0;
         } else {
             const secondsOfDecayNeeded = (originalTarget - currentLead) / decayPerSec;
             const totalSecondsFromStartToFinish = secondsOfDecayNeeded + decayStartSec;
             const timeElapsedSoFar = now - startTime;
-            secondsRemaining = totalSecondsFromStartToFinish - timeElapsedSoFar;
+            globalSecondsRemaining = totalSecondsFromStartToFinish - timeElapsedSoFar;
         }
 
-        updateUI(f1, f2, secondsRemaining, currentLead, leader.name, originalTarget, startTime, now);
+        // Update static UI elements
+        document.getElementById('stats-area').style.display = 'grid';
+        document.getElementById('war-title').innerText = `${f1.name} vs ${f2.name}`;
+        document.getElementById('f1-name').innerText = f1.name;
+        document.getElementById('f1-score').innerText = f1.score.toLocaleString();
+        document.getElementById('f2-name').innerText = f2.name;
+        document.getElementById('f2-score').innerText = f2.score.toLocaleString();
+        
+        // Save the lead and leader for the ticker to use
+        window.currentWarStats = {
+            lead: currentLead,
+            leader: leaderName,
+            target: originalTarget,
+            start: startTime
+        };
+
+        lastUpdateTimestamp = now;
+        renderUI();
 
     } catch (e) {
         console.error(e);
-        document.getElementById('war-title').innerText = "Data Connection Error";
     }
 }
 
-function updateUI(f1, f2, sec, lead, leaderName, originalTarget, startTime, now) {
-    document.getElementById('stats-area').style.display = 'grid';
-    document.getElementById('war-title').innerText = `${f1.name} vs ${f2.name}`;
-    document.getElementById('f1-name').innerText = f1.name;
-    document.getElementById('f1-score').innerText = f1.score.toLocaleString();
-    document.getElementById('f2-name').innerText = f2.name;
-    document.getElementById('f2-score').innerText = f2.score.toLocaleString();
+function runTicker() {
+    if (globalSecondsRemaining > 0) {
+        globalSecondsRemaining--;
+        renderUI();
+    }
+}
 
-    const decayStart = startTime + 86400;
-    let currentTarget = originalTarget;
+function renderUI() {
+    const sec = Math.max(0, Math.floor(globalSecondsRemaining));
+    const stats = window.currentWarStats;
+    if (!stats) return;
+
+    // Timer display
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = Math.floor(sec % 60);
+    document.getElementById('countdown').innerText = 
+        `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+    // Predicted Finish Calculation (GMT)
+    const finishDate = new Date(Date.now() + (sec * 1000));
+    const gmtString = finishDate.toUTCString().replace('GMT', 'TCT'); // Torn uses GMT/UTC as TCT
+
+    // Current Decaying Target calculation
+    const now = Math.floor(Date.now() / 1000);
+    const decayStart = stats.start + 86400;
+    let currentTarget = stats.target;
     if (now > decayStart) {
-        const decayPerSec = (originalTarget * 0.01) / 3600;
-        currentTarget = originalTarget - (decayPerSec * (now - decayStart));
+        const decayPerSec = (stats.target * 0.01) / 3600;
+        currentTarget = stats.target - (decayPerSec * (now - decayStart));
     }
 
-    if (sec <= 0) {
-        document.getElementById('countdown').innerText = "END IMMINENT";
-        document.getElementById('details').innerHTML = `<strong>${leaderName}</strong> has achieved the required lead.`;
-    } else {
-        const h = Math.floor(sec / 3600);
-        const m = Math.floor((sec % 3600) / 60);
-        const s = Math.floor(sec % 60);
-        
-        document.getElementById('countdown').innerText = 
-            `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        
-        document.getElementById('details').innerHTML = `
-            Current Lead: <strong>${lead.toLocaleString()}</strong><br>
-            Winning Target: <strong>${Math.max(0, Math.floor(currentTarget)).toLocaleString()}</strong><br>
-            <small style="color:#777">Updated at: ${new Date().toLocaleTimeString()}</small>
-        `;
-    }
+    document.getElementById('details').innerHTML = `
+        Leader: <strong>${stats.leader}</strong> (+${stats.lead.toLocaleString()})<br>
+        Required Lead Now: <strong>${Math.max(0, Math.floor(currentTarget)).toLocaleString()}</strong><br>
+        <span style="color: #00ff00">Predicted Finish: ${gmtString}</span><br>
+        <small style="color:#777">Data Sync: ${new Date(lastUpdateTimestamp * 1000).toUTCString()}</small>
+    `;
 }
