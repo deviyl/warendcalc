@@ -68,6 +68,19 @@ async function updateWarClock() {
 
 function runTicker() { renderUI(); }
 
+function getNextMatchmakingTuesday() {
+    const now = new Date();
+    const nextTuesday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    while (nextTuesday.getUTCDay() !== 2) {
+        nextTuesday.setUTCDate(nextTuesday.getUTCDate() + 1);
+    }
+    nextTuesday.setUTCHours(12, 0, 0, 0);
+    if (nextTuesday.getTime() < now.getTime()) {
+        nextTuesday.setUTCDate(nextTuesday.getUTCDate() + 7);
+    }
+    return nextTuesday;
+}
+
 function renderUI() {
     const now = Math.floor(Date.now() / 1000);
     const sec = Math.max(0, finishLineTimestamp - now);
@@ -108,13 +121,11 @@ function renderUI() {
     document.getElementById('radio-f2-name').innerText = stats.f2Name;
 
     const winnerVal = document.querySelector('input[name="winner"]:checked').value;
-    // Read from Slider instead of Radio
     const slider = document.getElementById('bracket-slider');
     const bracketPercent = parseInt(slider.value);
     document.getElementById('slider-val-display').innerText = bracketPercent + "%";
     
     const bracketMultiplier = bracketPercent / 100;
-    
     const winningName = (winnerVal === 'f1') ? stats.f1Name : stats.f2Name;
     const concedeName = (winnerVal === 'f1') ? stats.f2Name : stats.f1Name;
     const winningScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
@@ -142,5 +153,23 @@ function renderUI() {
         winnerStatusBar.classList.remove('complete-green');
         winnerStatusBar.classList.add('fail-red');
         winnerStatusText.innerText = "LOSING";
+    }
+
+    // --- MATCHMAKING BUFFER ---
+    const matchmakingTime = getNextMatchmakingTuesday();
+    const mmTimestamp = Math.floor(matchmakingTime.getTime() / 1000);
+    const bufferSeconds = mmTimestamp - finishLineTimestamp;
+    const bufferHours = (bufferSeconds / 3600).toFixed(1);
+    
+    const bufferDiv = document.getElementById('matchmaking-buffer');
+    const dateOptions = { month: 'short', day: 'numeric' };
+    const dateString = matchmakingTime.toLocaleDateString('en-GB', dateOptions);
+
+    let statusClass = bufferHours >= 5 ? 'buffer-safe' : 'buffer-danger';
+    
+    if (bufferSeconds < 0) {
+        bufferDiv.innerHTML = `<span class="buffer-danger">CRITICAL: Predicted finish is AFTER matchmaking begins on Tuesday (${dateString}) at 12:00 TCT</span>`;
+    } else {
+        bufferDiv.innerHTML = `Current war will end <span class="${statusClass}">${bufferHours} hours</span> before matchmaking begins on Tuesday (${dateString}) at 12:00 TCT`;
     }
 }
