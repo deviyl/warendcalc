@@ -104,3 +104,15 @@ input[type="range"]::-webkit-slider-thumb {
 .complete-green { background: #006400 !important; }
 .fail-red { background: #660000 !important; }
 .terms-bar-text { position: absolute; width: 100%; text-align: center; top: 6px; font-size: 0.9em; font-weight: bold; color: #fff; text-shadow: 1px 1px 2px #000; }
+
+.buffer-display {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid #441111;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.buffer-safe { color: #00ff00; font-weight: bold; }
+.buffer-danger { color: #ff0000; font-weight: bold; text-shadow: 0 0 5px rgba(255,0,0,0.3); }
+
