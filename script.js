@@ -108,7 +108,12 @@ function renderUI() {
     document.getElementById('radio-f2-name').innerText = stats.f2Name;
 
     const winnerVal = document.querySelector('input[name="winner"]:checked').value;
-    const bracketVal = parseFloat(document.querySelector('input[name="bracket"]:checked').value);
+    // Read from Slider instead of Radio
+    const slider = document.getElementById('bracket-slider');
+    const bracketPercent = parseInt(slider.value);
+    document.getElementById('slider-val-display').innerText = bracketPercent + "%";
+    
+    const bracketMultiplier = bracketPercent / 100;
     
     const winningName = (winnerVal === 'f1') ? stats.f1Name : stats.f2Name;
     const concedeName = (winnerVal === 'f1') ? stats.f2Name : stats.f1Name;
@@ -118,13 +123,13 @@ function renderUI() {
     document.getElementById('concede-label-text').innerHTML = `Conceding Faction<br>(${concedeName})`;
     document.getElementById('win-label-text').innerHTML = `Winning Faction<br>(${winningName})`;
 
-    const concedeTarget = Math.round(stats.original * bracketVal);
-    const concedePercent = Math.min(100, (concedeScore / concedeTarget) * 100);
+    const concedeTarget = Math.round(stats.original * bracketMultiplier);
+    const concedePercent = concedeTarget === 0 ? 100 : Math.min(100, (concedeScore / concedeTarget) * 100);
     const concedeBar = document.getElementById('concede-bar');
     concedeBar.style.width = concedePercent + "%";
     document.getElementById('concede-text').innerText = `${concedeScore.toLocaleString()} / ${concedeTarget.toLocaleString()} (${Math.round(concedePercent)}%)`;
     
-    if (concedeScore >= concedeTarget) concedeBar.classList.add('complete-green');
+    if (concedeScore >= concedeTarget && concedeTarget > 0) concedeBar.classList.add('complete-green');
     else concedeBar.classList.remove('complete-green');
 
     const winnerStatusBar = document.getElementById('winner-status-bar');
