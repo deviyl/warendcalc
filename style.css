@@ -15,147 +15,59 @@ body {
     box-shadow: 0 10px 40px rgba(255, 69, 0, 0.2);
     min-width: 550px;
     border: 1px solid #441111;
+    position: relative;
 }
 
-h1 {
-    margin-top: 0;
-    color: #ff4500;
-    font-size: 1.6em;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+h1 { margin-top: 0; color: #ff4500; font-size: 1.6em; letter-spacing: 2px; text-transform: uppercase; }
+
+input[type="text"] {
+    padding: 12px; border-radius: 4px; border: 1px solid #662222;
+    background: #000; color: #ff8c00; width: 250px; margin-bottom: 10px;
+    font-family: 'Courier New', monospace; font-size: 1em;
 }
 
-input {
-    padding: 12px;
-    border-radius: 4px;
-    border: 1px solid #662222;
-    background: #000;
-    color: #ff8c00;
-    width: 250px;
-    margin-bottom: 10px;
-    font-family: 'Courier New', monospace;
-    font-size: 1em;
-}
-
-button {
-    padding: 12px 20px;
-    border-radius: 4px;
-    border: none;
-    background: #ff4500;
-    color: white;
-    cursor: pointer;
-    font-weight: bold;
-}
+button { padding: 12px 20px; border-radius: 4px; border: none; background: #ff4500; color: white; cursor: pointer; font-weight: bold; }
 
 .hidden { display: none !important; }
 
-.timer {
-    font-size: 4.5em;
-    color: #ff4500;
-    margin: 10px 0 0 0;
-    font-family: 'Courier New', monospace;
-    font-weight: bold;
-    text-shadow: 0 0 15px rgba(255, 69, 0, 0.4);
-}
+.timer { font-size: 4.5em; color: #ff4500; margin: 10px 0 0 0; font-family: 'Courier New', monospace; font-weight: bold; text-shadow: 0 0 15px rgba(255, 69, 0, 0.4); }
 
-.original-target-text {
-    color: #cca3a3;
-    font-size: 0.9em;
-    margin-bottom: 20px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
+.original-target-text { color: #cca3a3; font-size: 0.9em; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
 
-.stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin-bottom: 25px;
-}
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
 
-.faction-card {
-    background: #2a0505;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #551111;
-}
+.faction-card { background: #2a0505; padding: 15px; border-radius: 8px; border: 1px solid #551111; }
 
-.faction-name {
-    color: #ff8c00;
-    font-size: 1em;
-    font-weight: bold;
-    text-transform: uppercase;
-    margin-bottom: 5px;
-}
+.faction-name { color: #ff8c00; font-size: 1em; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
 
 .score { font-size: 1.6em; font-weight: bold; color: #fff; }
 
 /* Tug of War UI */
 .tow-wrapper { width: 100%; margin: 20px 0; }
-
-.tow-labels-top {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9em;
-    font-weight: bold;
-    color: #ff8c00;
-    margin-bottom: 8px;
-}
-
-.tow-container {
-    position: relative;
-    width: 100%;
-    height: 40px;
-    background: #000;
-    border: 1px solid #441111;
-    border-radius: 4px;
-    display: flex;
-    overflow: hidden;
-}
-
-.tow-center-line {
-    position: absolute;
-    left: 50%;
-    width: 2px;
-    height: 100%;
-    background: #fff;
-    z-index: 5;
-    box-shadow: 0 0 5px #fff;
-}
-
+.tow-labels-top { display: flex; justify-content: space-between; font-size: 0.9em; font-weight: bold; color: #ff8c00; margin-bottom: 8px; }
+.tow-container { position: relative; width: 100%; height: 40px; background: #000; border: 1px solid #441111; border-radius: 4px; display: flex; overflow: hidden; }
+.tow-center-line { position: absolute; left: 50%; width: 2px; height: 100%; background: #fff; z-index: 5; box-shadow: 0 0 5px #fff; }
 .tow-side { width: 50%; height: 100%; position: relative; display: flex; align-items: center; }
 .tow-left { justify-content: flex-end; }
 .tow-right { justify-content: flex-start; }
-
 .fill-left, .fill-right { height: 100%; width: 0%; transition: width 0.8s; }
 .fill-left { background: linear-gradient(270deg, #800000, #ff4500); }
 .fill-right { background: linear-gradient(90deg, #800000, #ff4500); }
+.tow-value { position: absolute; z-index: 6; font-size: 1em; font-weight: bold; color: #fff; padding: 0 12px; text-shadow: 1px 1px 3px #000; }
+.tow-labels-bottom { display: flex; justify-content: space-between; font-size: 0.85em; color: #cca3a3; margin-top: 8px; position: relative; }
+.center-zero { position: absolute; left: 50%; transform: translateX(-50%); color: #fff; font-weight: bold; }
 
-.tow-value { 
-    position: absolute; 
-    z-index: 6; 
-    font-size: 1em; 
-    font-weight: bold; 
-    color: #fff; 
-    padding: 0 12px; 
-    text-shadow: 1px 1px 3px #000;
-}
-
-.tow-labels-bottom {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85em;
-    color: #cca3a3;
-    margin-top: 8px;
-    position: relative;
-}
-
-.center-zero {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #fff;
-    font-weight: bold;
-}
-
+.terms-toggle-area { position: absolute; bottom: 10px; right: 15px; font-size: 0.8em; color: #888; }
 #details { margin-top: 20px; font-size: 1.2em; }
+
+/* Terms Container Styles */
+.terms-title { color: #ff8c00; font-size: 1.2em; margin-bottom: 15px; text-transform: uppercase; }
+.winner-selection { margin-bottom: 20px; font-size: 0.9em; }
+.winner-selection label { margin: 0 10px; cursor: pointer; }
+.terms-section { margin-bottom: 20px; text-align: left; }
+.terms-header { display: flex; justify-content: space-between; font-size: 0.85em; color: #ff8c00; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
+.radio-group label { margin-left: 10px; font-weight: normal; font-size: 0.9em; color: #e0e0e0; cursor: pointer; }
+.terms-bar-bg { width: 100%; height: 25px; background: #000; border: 1px solid #441111; border-radius: 4px; position: relative; overflow: hidden; }
+.terms-bar-fill { height: 100%; width: 0%; background: #660000; transition: width 0.5s, background 0.3s; }
+.terms-bar-fill.complete { background: #006400 !important; }
+.terms-bar-text { position: absolute; width: 100%; text-align: center; top: 3px; font-size: 0.85em; font-weight: bold; color: #fff; text-shadow: 1px 1px 2px #000; }
