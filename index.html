@@ -73,24 +73,25 @@
 
             <div class="terms-section">
                 <div class="terms-header">
-                    <span id="concede-label-text">Conceding Team - Score for Max Rewards</span>
-                    <div class="radio-group">
-                        <label><input type="radio" name="bracket" value="0.3" checked onchange="updateWarClock()"> 30%</label>
-                        <label><input type="radio" name="bracket" value="0.4" onchange="updateWarClock()"> 40%</label>
-                        <label><input type="radio" name="bracket" value="0.5" onchange="updateWarClock()"> 50%</label>
-                    </div>
+                    <span id="concede-label-text">Conceding Team<br>Score for Max Rewards</span>
                 </div>
                 <div class="terms-bar-bg">
                     <div id="concede-bar" class="terms-bar-fill"></div>
                     <span id="concede-text" class="terms-bar-text">0 / 0</span>
                 </div>
+                <div class="radio-group-bottom">
+                    <span>Target Bracket:</span>
+                    <label><input type="radio" name="bracket" value="0.3" checked onchange="updateWarClock()"> 30%</label>
+                    <label><input type="radio" name="bracket" value="0.4" onchange="updateWarClock()"> 40%</label>
+                    <label><input type="radio" name="bracket" value="0.5" onchange="updateWarClock()"> 50%</label>
+                </div>
             </div>
 
-            <div class="terms-section">
-                <div class="terms-header" id="win-label-text">Winning Team - Win Status</div>
+            <div class="terms-section" style="margin-top: 30px;">
+                <div class="terms-header" id="win-label-text">Winning Team<br>Win Status</div>
                 <div class="terms-bar-bg">
                     <div id="winner-status-bar" class="terms-bar-fill-static"></div>
-                    <span id="winner-status-text" class="terms-bar-text">Awaiting Lead</span>
+                    <span id="winner-status-text" class="terms-bar-text">Awaiting Data</span>
                 </div>
             </div>
         </div>
