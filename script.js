@@ -32,8 +32,7 @@ async function updateWarClock() {
         const sortedIds = Object.keys(data.rankedwars).sort((a, b) => b - a);
         const warData = data.rankedwars[sortedIds[0]];
         const factions = Object.values(warData.factions);
-        const f1 = factions[0];
-        const f2 = factions[1];
+        const f1 = factions[0], f2 = factions[1];
 
         const now = Math.floor(Date.now() / 1000);
         const startTime = warData.war.start; 
@@ -75,10 +74,8 @@ function renderUI() {
     const stats = window.currentWarStats;
     if (!stats) return;
 
-    // --- MAIN CONTAINER UI ---
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const s = Math.floor(sec % 60);
+    // --- MAIN ---
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60);
     document.getElementById('countdown').innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     document.getElementById('orig-target-display').innerText = `Original Target: ${stats.original.toLocaleString()}`;
     document.getElementById('f1-name').innerText = stats.f1Name;
@@ -106,33 +103,39 @@ function renderUI() {
     const finishDate = new Date(finishLineTimestamp * 1000);
     document.getElementById('details').innerHTML = `<span style="color: #ff8c00; font-weight: bold;">Predicted Finish: ${finishDate.toUTCString().replace('GMT', 'TCT')}</span>`;
 
-    // --- TERMS CONTAINER UI ---
+    // --- TERMS ---
     document.getElementById('radio-f1-name').innerText = stats.f1Name;
     document.getElementById('radio-f2-name').innerText = stats.f2Name;
 
     const winnerVal = document.querySelector('input[name="winner"]:checked').value;
     const bracketVal = parseFloat(document.querySelector('input[name="bracket"]:checked').value);
     
-    const concedeScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
+    const winningName = (winnerVal === 'f1') ? stats.f1Name : stats.f2Name;
+    const concedeName = (winnerVal === 'f1') ? stats.f2Name : stats.f1Name;
     const winningScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
+    const concedeScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
     
-    const concedeTarget = Math.round(stats.original * bracketVal);
-    const winTarget = stats.target;
+    document.getElementById('concede-label-text').innerText = `Conceding Team (${concedeName}) - Score for Max Rewards`;
+    document.getElementById('win-label-text').innerText = `Winning Team (${winningName}) - Win Status`;
 
-    // Conceding Bar
+    const concedeTarget = Math.round(stats.original * bracketVal);
     const concedePercent = Math.min(100, (concedeScore / concedeTarget) * 100);
     const concedeBar = document.getElementById('concede-bar');
     concedeBar.style.width = concedePercent + "%";
     document.getElementById('concede-text').innerText = `${concedeScore.toLocaleString()} / ${concedeTarget.toLocaleString()} (${Math.round(concedePercent)}%)`;
-    if (concedeScore >= concedeTarget) concedeBar.classList.add('complete');
-    else concedeBar.classList.remove('complete');
+    
+    if (concedeScore >= concedeTarget) concedeBar.classList.add('complete-green');
+    else concedeBar.classList.remove('complete-green');
 
-    // Winning Bar
-    const winPercent = Math.min(100, (winningScore / winTarget) * 100);
-    const winnerBar = document.getElementById('winner-bar');
-    winnerBar.style.width = winPercent + "%";
-    document.getElementById('winner-text').innerText = `${winningScore.toLocaleString()} / ${winTarget.toLocaleString()}`;
-    // Win Condition: Must be higher than concede team
-    if (winningScore > concedeScore) winnerBar.classList.add('complete');
-    else winnerBar.classList.remove('complete');
+    const winnerStatusBar = document.getElementById('winner-status-bar');
+    const winnerStatusText = document.getElementById('winner-status-text');
+    if (winningScore > concedeScore) {
+        winnerStatusBar.classList.add('complete-green');
+        winnerStatusBar.classList.remove('fail-red');
+        winnerStatusText.innerText = "VALID WIN (SCORE HIGHER)";
+    } else {
+        winnerStatusBar.classList.remove('complete-green');
+        winnerStatusBar.classList.add('fail-red');
+        winnerStatusText.innerText = "INVALID WIN (SCORE TOO LOW)";
+    }
 }
