@@ -3,6 +3,13 @@ let tickerInterval;
 let currentApiKey = "";
 let finishLineTimestamp = 0;
 
+function toggleTerms() {
+    const isChecked = document.getElementById('terms-checkbox').checked;
+    const termsContainer = document.getElementById('terms-container');
+    if (isChecked) termsContainer.classList.remove('hidden');
+    else termsContainer.classList.add('hidden');
+}
+
 async function startTracking() {
     const keyInput = document.getElementById('api-key').value.trim();
     if (keyInput.length < 16) {
@@ -12,12 +19,8 @@ async function startTracking() {
     currentApiKey = keyInput;
     document.getElementById('setup-area').classList.add('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
-    
     await updateWarClock();
-    
-    if (apiInterval) clearInterval(apiInterval);
     apiInterval = setInterval(updateWarClock, 30000);
-    if (tickerInterval) clearInterval(tickerInterval);
     tickerInterval = setInterval(runTicker, 1000);
 }
 
@@ -37,7 +40,6 @@ async function updateWarClock() {
         const currentLead = Math.abs(f1.score - f2.score);
         const currentTargetLead = warData.war.target;
 
-        // 1. REVERSE ENGINEER ORIGINAL TARGET (N+1 logic)
         const secondsElapsed = now - startTime;
         const gracePeriod = 86400; 
         let originalTarget;
@@ -50,22 +52,16 @@ async function updateWarClock() {
             originalTarget = Math.round(currentTargetLead / (1 - (0.01 * currentIterations)));
         }
 
-        // 2. FIND WINNING ITERATION (Locked points logic)
         const totalIterationsNeeded = Math.ceil((originalTarget - currentLead) / (originalTarget * 0.01));
-
-        // 3. SET FIXED FINISH TIMESTAMP
         finishLineTimestamp = startTime + gracePeriod + ((totalIterationsNeeded - 1) * 3600);
 
-        // UI Store
         window.currentWarStats = {
             lead: currentLead,
             leader: f1.score > f2.score ? f1.name : f2.name,
             target: currentTargetLead,
             original: originalTarget,
-            f1Name: f1.name,
-            f2Name: f2.name,
-            f1Score: f1.score,
-            f2Score: f2.score
+            f1Name: f1.name, f2Name: f2.name,
+            f1Score: f1.score, f2Score: f2.score
         };
         renderUI();
     } catch (e) { console.error(e); }
@@ -79,38 +75,27 @@ function renderUI() {
     const stats = window.currentWarStats;
     if (!stats) return;
 
-    // Clock
+    // --- MAIN CONTAINER UI ---
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
     const s = Math.floor(sec % 60);
-    document.getElementById('countdown').innerText = 
-        `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-
-    // Original Target & Faction Cards
+    document.getElementById('countdown').innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     document.getElementById('orig-target-display').innerText = `Original Target: ${stats.original.toLocaleString()}`;
     document.getElementById('f1-name').innerText = stats.f1Name;
     document.getElementById('f1-score').innerText = stats.f1Score.toLocaleString();
     document.getElementById('f2-name').innerText = stats.f2Name;
     document.getElementById('f2-score').innerText = stats.f2Score.toLocaleString();
 
-    // Tug of War Bar Updates
-    const fillLeft = document.getElementById('fill-left');
-    const fillRight = document.getElementById('fill-right');
-    const valLeft = document.getElementById('val-left');
-    const valRight = document.getElementById('val-right');
-    
-    // Reset fills
+    const fillLeft = document.getElementById('fill-left'), fillRight = document.getElementById('fill-right');
+    const valLeft = document.getElementById('val-left'), valRight = document.getElementById('val-right');
     fillLeft.style.width = "0%"; fillRight.style.width = "0%";
     valLeft.innerText = ""; valRight.innerText = "";
-    
-    // Set labels and targets
     document.getElementById('label-f1').innerText = stats.f1Name;
     document.getElementById('label-f2').innerText = stats.f2Name;
     document.getElementById('target-left').innerText = stats.target.toLocaleString();
     document.getElementById('target-right').innerText = stats.target.toLocaleString();
 
     const barWidthPercent = Math.min(100, (stats.lead / stats.target) * 100).toFixed(1);
-
     if (stats.f1Score > stats.f2Score) {
         fillLeft.style.width = barWidthPercent + "%";
         valLeft.innerText = stats.lead.toLocaleString();
@@ -118,13 +103,36 @@ function renderUI() {
         fillRight.style.width = barWidthPercent + "%";
         valRight.innerText = stats.lead.toLocaleString();
     }
-
-    // Predicted Finish
     const finishDate = new Date(finishLineTimestamp * 1000);
-    const tctString = finishDate.toUTCString().replace('GMT', 'TCT');
-    document.getElementById('details').innerHTML = `
-        <span style="color: #ff8c00; font-weight: bold;">
-            Predicted Finish: ${tctString}
-        </span>
-    `;
+    document.getElementById('details').innerHTML = `<span style="color: #ff8c00; font-weight: bold;">Predicted Finish: ${finishDate.toUTCString().replace('GMT', 'TCT')}</span>`;
+
+    // --- TERMS CONTAINER UI ---
+    document.getElementById('radio-f1-name').innerText = stats.f1Name;
+    document.getElementById('radio-f2-name').innerText = stats.f2Name;
+
+    const winnerVal = document.querySelector('input[name="winner"]:checked').value;
+    const bracketVal = parseFloat(document.querySelector('input[name="bracket"]:checked').value);
+    
+    const concedeScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
+    const winningScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
+    
+    const concedeTarget = Math.round(stats.original * bracketVal);
+    const winTarget = stats.target;
+
+    // Conceding Bar
+    const concedePercent = Math.min(100, (concedeScore / concedeTarget) * 100);
+    const concedeBar = document.getElementById('concede-bar');
+    concedeBar.style.width = concedePercent + "%";
+    document.getElementById('concede-text').innerText = `${concedeScore.toLocaleString()} / ${concedeTarget.toLocaleString()} (${Math.round(concedePercent)}%)`;
+    if (concedeScore >= concedeTarget) concedeBar.classList.add('complete');
+    else concedeBar.classList.remove('complete');
+
+    // Winning Bar
+    const winPercent = Math.min(100, (winningScore / winTarget) * 100);
+    const winnerBar = document.getElementById('winner-bar');
+    winnerBar.style.width = winPercent + "%";
+    document.getElementById('winner-text').innerText = `${winningScore.toLocaleString()} / ${winTarget.toLocaleString()}`;
+    // Win Condition: Must be higher than concede team
+    if (winningScore > concedeScore) winnerBar.classList.add('complete');
+    else winnerBar.classList.remove('complete');
 }
