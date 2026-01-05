@@ -7,15 +7,23 @@ body {
     margin: 0;
 }
 
+/* Added wrapper to force vertical stacking */
+.main-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
 .container {
     background: #1a0a0a;
     padding: 30px;
     border-radius: 12px;
-    display: inline-block;
     box-shadow: 0 10px 40px rgba(255, 69, 0, 0.2);
-    min-width: 550px;
+    width: 550px; /* Fixed width for consistency */
     border: 1px solid #441111;
     position: relative;
+    box-sizing: border-box;
 }
 
 h1 { margin-top: 0; color: #ff4500; font-size: 1.6em; letter-spacing: 2px; text-transform: uppercase; }
@@ -42,7 +50,6 @@ button { padding: 12px 20px; border-radius: 4px; border: none; background: #ff45
 
 .score { font-size: 1.6em; font-weight: bold; color: #fff; }
 
-/* Tug of War UI */
 .tow-wrapper { width: 100%; margin: 20px 0; }
 .tow-labels-top { display: flex; justify-content: space-between; font-size: 0.9em; font-weight: bold; color: #ff8c00; margin-bottom: 8px; }
 .tow-container { position: relative; width: 100%; height: 40px; background: #000; border: 1px solid #441111; border-radius: 4px; display: flex; overflow: hidden; }
@@ -60,14 +67,19 @@ button { padding: 12px 20px; border-radius: 4px; border: none; background: #ff45
 .terms-toggle-area { position: absolute; bottom: 10px; right: 15px; font-size: 0.8em; color: #888; }
 #details { margin-top: 20px; font-size: 1.2em; }
 
-/* Terms Container Styles */
+/* Terms Styles */
 .terms-title { color: #ff8c00; font-size: 1.2em; margin-bottom: 15px; text-transform: uppercase; }
 .winner-selection { margin-bottom: 20px; font-size: 0.9em; }
 .winner-selection label { margin: 0 10px; cursor: pointer; }
 .terms-section { margin-bottom: 20px; text-align: left; }
-.terms-header { display: flex; justify-content: space-between; font-size: 0.85em; color: #ff8c00; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
+.terms-header { display: flex; justify-content: space-between; font-size: 0.8em; color: #ff8c00; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
 .radio-group label { margin-left: 10px; font-weight: normal; font-size: 0.9em; color: #e0e0e0; cursor: pointer; }
 .terms-bar-bg { width: 100%; height: 25px; background: #000; border: 1px solid #441111; border-radius: 4px; position: relative; overflow: hidden; }
 .terms-bar-fill { height: 100%; width: 0%; background: #660000; transition: width 0.5s, background 0.3s; }
-.terms-bar-fill.complete { background: #006400 !important; }
+
+/* Static full bar for Winning Status */
+.terms-bar-fill-static { width: 100%; height: 100%; background: #660000; transition: background 0.3s; }
+
+.complete-green { background: #006400 !important; }
+.fail-red { background: #660000 !important; }
 .terms-bar-text { position: absolute; width: 100%; text-align: center; top: 3px; font-size: 0.85em; font-weight: bold; color: #fff; text-shadow: 1px 1px 2px #000; }
