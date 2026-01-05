@@ -60,7 +60,8 @@ async function updateWarClock() {
             target: currentTargetLead,
             original: originalTarget,
             f1Name: f1.name, f2Name: f2.name,
-            f1Score: f1.score, f2Score: f2.score
+            f1Score: f1.score, f2Score: f2.score,
+            startTime: startTime
         };
         renderUI();
     } catch (e) { console.error(e); }
@@ -155,15 +156,47 @@ function renderUI() {
         winnerStatusText.innerText = "LOSING";
     }
 
-    // --- MATCHMAKING BUFFER ---
+    // --- MATCHMAKING BUFFER & POINTS REQUIRED ---
     const matchmakingTime = getNextMatchmakingTuesday();
     const mmTimestamp = Math.floor(matchmakingTime.getTime() / 1000);
     const bufferSeconds = mmTimestamp - finishLineTimestamp;
     const bufferHours = (bufferSeconds / 3600).toFixed(1);
     
     const bufferDiv = document.getElementById('matchmaking-buffer');
-    const dateOptions = { month: 'short', day: 'numeric' };
-    const dateString = matchmakingTime.toLocaleDateString('en-GB', dateOptions);
+    const pointsDiv = document.getElementById('points-required');
+    const dateString = matchmakingTime.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+
+    if (bufferSeconds < 0 || bufferHours < 5) {
+        pointsDiv.classList.remove('hidden');
+        
+        // Calculation Logic:
+        // We need to find a new target lead (L) such that the finish time is earlier.
+        // FinishTime = Start + Grace + (IterationsNeeded - 1) * 3600
+        // IterationsNeeded = Ceil( (OriginalTarget - L) / (OriginalTarget * 0.01) )
+        
+        const calculatePoints = (requiredBufferHours) => {
+            const targetFinishTime = mmTimestamp - (requiredBufferHours * 3600);
+            const gracePeriod = 86400;
+            const timeAvailableForIterations = targetFinishTime - (stats.startTime + gracePeriod);
+            
+            if (timeAvailableForIterations < 0) return "Impossible";
+            
+            const maxIterationsAllowed = Math.floor(timeAvailableForIterations / 3600) + 1;
+            // Reverse of: iterationsNeeded = (Original - Lead) / (Original * 0.01)
+            // Lead = Original - (iterationsNeeded * Original * 0.01)
+            const requiredLead = Math.ceil(stats.original - (maxIterationsAllowed * stats.original * 0.01));
+            const extraPointsNeeded = Math.max(0, requiredLead - stats.lead);
+            return extraPointsNeeded.toLocaleString();
+        };
+
+        const points1h = calculatePoints(1);
+        const points5h = calculatePoints(5);
+
+        pointsDiv.innerHTML = `To clear deadline by 1 hour, gain: <span class="points-val">${points1h}</span> points<br>` +
+                              `To clear deadline by 5 hours, gain: <span class="points-val">${points5h}</span> points`;
+    } else {
+        pointsDiv.classList.add('hidden');
+    }
 
     if (bufferSeconds < 0) {
         bufferDiv.innerHTML = `<span class="buffer-danger">Predicted finish is AFTER matchmaking begins on:<br>Tuesday (${dateString}) at 12:00 TCT</span>`;
