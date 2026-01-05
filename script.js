@@ -165,11 +165,10 @@ function renderUI() {
     const dateOptions = { month: 'short', day: 'numeric' };
     const dateString = matchmakingTime.toLocaleDateString('en-GB', dateOptions);
 
-    let statusClass = bufferHours >= 5 ? 'buffer-safe' : 'buffer-danger';
-    
     if (bufferSeconds < 0) {
-        bufferDiv.innerHTML = `<span class="buffer-danger">CRITICAL: Predicted finish is AFTER matchmaking begins on Tuesday (${dateString}) at 12:00 TCT</span>`;
+        bufferDiv.innerHTML = `<span class="buffer-danger">Predicted finish is AFTER matchmaking begins on:<br>Tuesday (${dateString}) at 12:00 TCT</span>`;
     } else {
-        bufferDiv.innerHTML = `Current war will end <span class="${statusClass}">${bufferHours} hours</span> before matchmaking begins on Tuesday (${dateString}) at 12:00 TCT`;
+        const statusClass = bufferHours >= 5 ? 'buffer-safe' : 'buffer-danger';
+        bufferDiv.innerHTML = `Current war will end <span class="${statusClass}">${bufferHours} hours</span> before<br>matchmaking begins on Tuesday (${dateString}) at 12:00 TCT`;
     }
 }
