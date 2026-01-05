@@ -54,8 +54,46 @@
             </div>
 
             <div id="details"></div>
+
+            <div class="terms-toggle-area">
+                <label><input type="checkbox" id="terms-checkbox" onchange="toggleTerms()"> Terms?</label>
+            </div>
         </div>
     </div>
+
+    <div id="terms-container" class="container hidden" style="margin-top: 20px;">
+        <h2 class="terms-title">War Terms Coordination</h2>
+        
+        <div class="winner-selection">
+            <span>Select Winner:</span>
+            <label><input type="radio" name="winner" value="f1" checked onchange="updateWarClock()"> <span id="radio-f1-name">F1</span></label>
+            <label><input type="radio" name="winner" value="f2" onchange="updateWarClock()"> <span id="radio-f2-name">F2</span></label>
+        </div>
+
+        <div class="terms-section">
+            <div class="terms-header">
+                <span>Conceding Team Rewards</span>
+                <div class="radio-group">
+                    <label><input type="radio" name="bracket" value="0.3" checked onchange="updateWarClock()"> 30%</label>
+                    <label><input type="radio" name="bracket" value="0.4" onchange="updateWarClock()"> 40%</label>
+                    <label><input type="radio" name="bracket" value="0.5" onchange="updateWarClock()"> 50%</label>
+                </div>
+            </div>
+            <div class="terms-bar-bg">
+                <div id="concede-bar" class="terms-bar-fill"></div>
+                <span id="concede-text" class="terms-bar-text">0 / 0</span>
+            </div>
+        </div>
+
+        <div class="terms-section">
+            <div class="terms-header">Winning Team Status</div>
+            <div class="terms-bar-bg">
+                <div id="winner-bar" class="terms-bar-fill"></div>
+                <span id="winner-text" class="terms-bar-text">0 / 0</span>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
