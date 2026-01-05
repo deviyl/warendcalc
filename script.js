@@ -115,8 +115,8 @@ function renderUI() {
     const winningScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
     const concedeScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
     
-    document.getElementById('concede-label-text').innerHTML = `Conceding Team (${concedeName})<br>Score for Max Rewards`;
-    document.getElementById('win-label-text').innerHTML = `Winning Team (${winningName})<br>Win Status`;
+    document.getElementById('concede-label-text').innerHTML = `Conceding Faction<br>(${concedeName})`;
+    document.getElementById('win-label-text').innerHTML = `Winning Faction<br>(${winningName})`;
 
     const concedeTarget = Math.round(stats.original * bracketVal);
     const concedePercent = Math.min(100, (concedeScore / concedeTarget) * 100);
