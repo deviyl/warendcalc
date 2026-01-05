@@ -115,8 +115,8 @@ function renderUI() {
     const winningScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
     const concedeScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
     
-    document.getElementById('concede-label-text').innerText = `Conceding Team (${concedeName}) - Score for Max Rewards`;
-    document.getElementById('win-label-text').innerText = `Winning Team (${winningName}) - Win Status`;
+    document.getElementById('concede-label-text').innerHTML = `Conceding Team (${concedeName})<br>Score for Max Rewards`;
+    document.getElementById('win-label-text').innerHTML = `Winning Team (${winningName})<br>Win Status`;
 
     const concedeTarget = Math.round(stats.original * bracketVal);
     const concedePercent = Math.min(100, (concedeScore / concedeTarget) * 100);
@@ -132,10 +132,10 @@ function renderUI() {
     if (winningScore > concedeScore) {
         winnerStatusBar.classList.add('complete-green');
         winnerStatusBar.classList.remove('fail-red');
-        winnerStatusText.innerText = "VALID WIN (SCORE HIGHER)";
+        winnerStatusText.innerText = "WINNING";
     } else {
         winnerStatusBar.classList.remove('complete-green');
         winnerStatusBar.classList.add('fail-red');
-        winnerStatusText.innerText = "INVALID WIN (SCORE TOO LOW)";
+        winnerStatusText.innerText = "LOSING";
     }
 }
