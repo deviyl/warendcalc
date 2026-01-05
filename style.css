@@ -22,7 +22,6 @@ body {
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(255, 69, 0, 0.2);
-    /* Mobile-Friendly Widths */
     width: 95%;
     max-width: 550px;
     border: 1px solid #441111;
@@ -43,7 +42,6 @@ button { padding: 12px 20px; border-radius: 4px; border: none; background: #ff45
 
 .hidden { display: none !important; }
 
-/* Responsive Timer */
 .timer { 
     font-size: clamp(2.5em, 12vw, 4.5em); 
     color: #ff4500; 
@@ -124,5 +122,14 @@ input[type="range"]::-webkit-slider-thumb {
     font-size: 0.85em;
     line-height: 1.6;
 }
+
+.points-display {
+    margin-top: 10px;
+    font-size: 0.85em;
+    color: #ff8c00;
+    line-height: 1.6;
+}
+
 .buffer-safe { color: #00ff00; font-weight: bold; }
 .buffer-danger { color: #ff0000; font-weight: bold; }
+.points-val { color: #fff; font-weight: bold; }
