@@ -11,9 +11,10 @@ async function startTracking() {
     }
     currentApiKey = keyInput;
     document.getElementById('setup-area').classList.add('hidden');
-    document.getElementById('active-controls').classList.remove('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
+    
     await updateWarClock();
+    
     if (apiInterval) clearInterval(apiInterval);
     apiInterval = setInterval(updateWarClock, 30000);
     if (tickerInterval) clearInterval(tickerInterval);
@@ -36,7 +37,7 @@ async function updateWarClock() {
         const currentLead = Math.abs(f1.score - f2.score);
         const currentTargetLead = warData.war.target;
 
-        // 1. REVERSE ENGINEER ORIGINAL TARGET
+        // 1. REVERSE ENGINEER ORIGINAL TARGET (N+1 logic)
         const secondsElapsed = now - startTime;
         const gracePeriod = 86400; 
         let originalTarget;
@@ -49,24 +50,20 @@ async function updateWarClock() {
             originalTarget = Math.round(currentTargetLead / (1 - (0.01 * currentIterations)));
         }
 
-        // 2. FIND WINNING ITERATION
+        // 2. FIND WINNING ITERATION (Locked points logic)
         const totalIterationsNeeded = Math.ceil((originalTarget - currentLead) / (originalTarget * 0.01));
 
         // 3. SET FIXED FINISH TIMESTAMP
         finishLineTimestamp = startTime + gracePeriod + ((totalIterationsNeeded - 1) * 3600);
 
-        // Update UI
-        document.getElementById('war-title').innerText = `${f1.name} vs ${f2.name}`;
-        document.getElementById('f1-name').innerText = f1.name;
-        document.getElementById('f1-score').innerText = f1.score.toLocaleString();
-        document.getElementById('f2-name').innerText = f2.name;
-        document.getElementById('f2-score').innerText = f2.score.toLocaleString();
-        
+        // UI Store
         window.currentWarStats = {
             lead: currentLead,
             leader: f1.score > f2.score ? f1.name : f2.name,
             target: currentTargetLead,
             original: originalTarget,
+            f1Name: f1.name,
+            f2Name: f2.name,
             f1Score: f1.score,
             f2Score: f2.score
         };
@@ -89,34 +86,45 @@ function renderUI() {
     document.getElementById('countdown').innerText = 
         `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 
-    // Tug of War Logic
+    // Original Target & Faction Cards
+    document.getElementById('orig-target-display').innerText = `Original Target: ${stats.original.toLocaleString()}`;
+    document.getElementById('f1-name').innerText = stats.f1Name;
+    document.getElementById('f1-score').innerText = stats.f1Score.toLocaleString();
+    document.getElementById('f2-name').innerText = stats.f2Name;
+    document.getElementById('f2-score').innerText = stats.f2Score.toLocaleString();
+
+    // Tug of War Bar Updates
     const fillLeft = document.getElementById('fill-left');
     const fillRight = document.getElementById('fill-right');
     const valLeft = document.getElementById('val-left');
     const valRight = document.getElementById('val-right');
     
+    // Reset fills
     fillLeft.style.width = "0%"; fillRight.style.width = "0%";
     valLeft.innerText = ""; valRight.innerText = "";
-    document.getElementById('label-f1').innerText = document.getElementById('f1-name').innerText;
-    document.getElementById('label-f2').innerText = document.getElementById('f2-name').innerText;
+    
+    // Set labels and targets
+    document.getElementById('label-f1').innerText = stats.f1Name;
+    document.getElementById('label-f2').innerText = stats.f2Name;
+    document.getElementById('target-left').innerText = stats.target.toLocaleString();
+    document.getElementById('target-right').innerText = stats.target.toLocaleString();
 
-    const progressPercent = Math.min(100, (stats.lead / stats.target) * 100).toFixed(1);
+    const barWidthPercent = Math.min(100, (stats.lead / stats.target) * 100).toFixed(1);
 
     if (stats.f1Score > stats.f2Score) {
-        fillLeft.style.width = progressPercent + "%";
-        valLeft.innerText = progressPercent + "%";
+        fillLeft.style.width = barWidthPercent + "%";
+        valLeft.innerText = stats.lead.toLocaleString();
     } else if (stats.f2Score > stats.f1Score) {
-        fillRight.style.width = progressPercent + "%";
-        valRight.innerText = progressPercent + "%";
+        fillRight.style.width = barWidthPercent + "%";
+        valRight.innerText = stats.lead.toLocaleString();
     }
 
+    // Predicted Finish
     const finishDate = new Date(finishLineTimestamp * 1000);
+    const tctString = finishDate.toUTCString().replace('GMT', 'TCT');
     document.getElementById('details').innerHTML = `
-        Current Lead: <strong>${stats.lead.toLocaleString()}</strong> (${stats.leader})<br>
-        Current Target: <strong>${stats.target.toLocaleString()}</strong><br>
-        Original Target: <strong>${stats.original.toLocaleString()}</strong><br>
-        <span style="color: #ff8c00; font-size: 1.1em; font-weight: bold; display: block; margin-top: 10px;">
-            Predicted Finish: ${finishDate.toUTCString().replace('GMT', 'TCT')}
+        <span style="color: #ff8c00; font-weight: bold;">
+            Predicted Finish: ${tctString}
         </span>
     `;
 }
