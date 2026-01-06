@@ -75,10 +75,8 @@ button { padding: 12px 20px; border-radius: 4px; border: none; background: #ff45
 .tow-labels-bottom { display: flex; justify-content: space-between; font-size: 0.75em; color: #cca3a3; margin-top: 8px; position: relative; }
 .center-zero { position: absolute; left: 50%; transform: translateX(-50%); color: #fff; font-weight: bold; }
 
-.terms-toggle-area { position: absolute; bottom: 10px; right: 15px; font-size: 0.8em; color: #888; }
-/* Added History Toggle CSS */
 .history-toggle-area { position: absolute; bottom: 10px; left: 15px; font-size: 0.8em; color: #888; }
-
+.terms-toggle-area { position: absolute; bottom: 10px; right: 15px; font-size: 0.8em; color: #888; }
 #details { margin-top: 20px; font-size: 1em; }
 
 /* Terms Styles */
