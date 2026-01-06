@@ -17,49 +17,54 @@
             </div>
 
             <div id="dashboard" class="hidden">
-                <div class="timer" id="countdown">00:00:00</div>
-                <div id="orig-target-display" class="original-target-text">Original Target: 0</div>
-                
-                <div class="stats-grid">
-                    <div class="faction-card">
-                        <div id="f1-name" class="faction-name">Faction 1</div>
-                        <div id="f1-score" class="score">0</div>
-                    </div>
-                    <div class="faction-card">
-                        <div id="f2-name" class="faction-name">Faction 2</div>
-                        <div id="f2-score" class="score">0</div>
-                    </div>
+                <div id="no-war-message" class="hidden" style="padding: 40px 0; font-size: 1.5em; color: #ff4500; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">
+                    No Active War
                 </div>
 
-                <div class="tow-wrapper">
-                    <div class="tow-labels-top">
-                        <span id="label-f1">F1</span>
-                        <span id="label-f2">F2</span>
-                    </div>
-                    <div class="tow-container">
-                        <div class="tow-center-line"></div>
-                        <div class="tow-side tow-left">
-                            <div id="fill-left" class="fill-left"></div>
-                            <div id="val-left" class="tow-value"></div>
+                <div id="active-war-elements">
+                    <div class="timer" id="countdown">00:00:00</div>
+                    <div id="orig-target-display" class="original-target-text">Original Target: 0</div>
+                    
+                    <div class="stats-grid">
+                        <div class="faction-card">
+                            <div id="f1-name" class="faction-name">Faction 1</div>
+                            <div id="f1-score" class="score">0</div>
                         </div>
-                        <div class="tow-side tow-right">
-                            <div id="val-right" class="tow-value"></div>
-                            <div id="fill-right" class="fill-right"></div>
+                        <div class="faction-card">
+                            <div id="f2-name" class="faction-name">Faction 2</div>
+                            <div id="f2-score" class="score">0</div>
                         </div>
                     </div>
-                    <div class="tow-labels-bottom">
-                        <span id="target-left">0</span>
-                        <span class="center-zero">0</span>
-                        <span id="target-right">0</span>
-                    </div>
-                </div>
 
-                <div id="details"></div>
+                    <div class="tow-wrapper">
+                        <div class="tow-labels-top">
+                            <span id="label-f1">F1</span>
+                            <span id="label-f2">F2</span>
+                        </div>
+                        <div class="tow-container">
+                            <div class="tow-center-line"></div>
+                            <div class="tow-side tow-left">
+                                <div id="fill-left" class="fill-left"></div>
+                                <div id="val-left" class="tow-value"></div>
+                            </div>
+                            <div class="tow-side tow-right">
+                                <div id="val-right" class="tow-value"></div>
+                                <div id="fill-right" class="fill-right"></div>
+                            </div>
+                        </div>
+                        <div class="tow-labels-bottom">
+                            <span id="target-left">0</span>
+                            <span class="center-zero">0</span>
+                            <span id="target-right">0</span>
+                        </div>
+                    </div>
+                    <div id="details"></div>
+                </div>
 
                 <div class="history-toggle-area">
                     <label><input type="checkbox" id="last-war-checkbox" onchange="toggleLastWar()"> Last War?</label>
                 </div>
-                <div class="terms-toggle-area">
+                <div class="terms-toggle-area" id="terms-toggle-wrapper">
                     <label><input type="checkbox" id="terms-checkbox" onchange="toggleTerms()"> Terms?</label>
                 </div>
             </div>
@@ -84,17 +89,13 @@
 
         <div id="terms-container" class="container hidden" style="margin-top: 20px;">
             <h2 class="terms-title">War Terms Coordination</h2>
-            
             <div class="winner-selection">
                 <span>Select Winner:</span>
                 <label><input type="radio" name="winner" value="f1" checked onchange="updateWarClock()"> <span id="radio-f1-name">F1</span></label>
                 <label><input type="radio" name="winner" value="f2" onchange="updateWarClock()"> <span id="radio-f2-name">F2</span></label>
             </div>
-
             <div class="terms-section">
-                <div class="terms-header">
-                    <span id="concede-label-text">Conceding Faction<br>(Faction Name)</span>
-                </div>
+                <div class="terms-header"><span id="concede-label-text">Conceding Faction<br>(Faction Name)</span></div>
                 <div class="terms-bar-bg">
                     <div id="concede-bar" class="terms-bar-fill"></div>
                     <span id="concede-text" class="terms-bar-text">0 / 0</span>
@@ -107,7 +108,6 @@
                     <input type="range" id="bracket-slider" min="0" max="100" value="30" step="1" oninput="updateWarClock()">
                 </div>
             </div>
-
             <div class="terms-section" style="margin-top: 30px;">
                 <div class="terms-header" id="win-label-text">Winning Faction<br>(Faction Name)</div>
                 <div class="terms-bar-bg">
@@ -115,13 +115,8 @@
                     <span id="winner-status-text" class="terms-bar-text">Awaiting Data</span>
                 </div>
             </div>
-
-            <div id="matchmaking-buffer" class="buffer-display">
-                Calculating matchmaking buffer...
-            </div>
-            <div id="points-required" class="points-display hidden">
-                Calculating points needed...
-            </div>
+            <div id="matchmaking-buffer" class="buffer-display">Calculating matchmaking buffer...</div>
+            <div id="points-required" class="points-display hidden">Calculating points needed...</div>
         </div>
     </div>
     <script src="script.js"></script>
