@@ -2,12 +2,20 @@ let apiInterval;
 let tickerInterval;
 let currentApiKey = "";
 let finishLineTimestamp = 0;
+let previousWarData = null; // Global to store previous war stats
 
 function toggleTerms() {
     const isChecked = document.getElementById('terms-checkbox').checked;
     const termsContainer = document.getElementById('terms-container');
     if (isChecked) termsContainer.classList.remove('hidden');
     else termsContainer.classList.add('hidden');
+}
+
+function toggleLastWar() {
+    const isChecked = document.getElementById('last-war-checkbox').checked;
+    const lastWarContainer = document.getElementById('last-war-container');
+    if (isChecked) lastWarContainer.classList.remove('hidden');
+    else lastWarContainer.classList.add('hidden');
 }
 
 async function startTracking() {
@@ -30,6 +38,8 @@ async function updateWarClock() {
         const response = await fetch(`https://api.torn.com/faction/?selections=rankedwars&key=${currentApiKey}`);
         const data = await response.json();
         const sortedIds = Object.keys(data.rankedwars).sort((a, b) => b - a);
+        
+        // --- CURRENT WAR DATA [0] ---
         const warData = data.rankedwars[sortedIds[0]];
         const factions = Object.values(warData.factions);
         const f1 = factions[0], f2 = factions[1];
@@ -63,6 +73,20 @@ async function updateWarClock() {
             f1Score: f1.score, f2Score: f2.score,
             startTime: startTime
         };
+
+        // --- PREVIOUS WAR DATA [1] ---
+        if (sortedIds.length > 1) {
+            const prevWar = data.rankedwars[sortedIds[1]];
+            const prevFactions = Object.values(prevWar.factions);
+            previousWarData = {
+                f1Name: prevFactions[0].name,
+                f1Score: prevFactions[0].score,
+                f2Name: prevFactions[1].name,
+                f2Score: prevFactions[1].score,
+                endTime: prevWar.war.end
+            };
+        }
+
         renderUI();
     } catch (e) { console.error(e); }
 }
@@ -117,6 +141,16 @@ function renderUI() {
     const finishDate = new Date(finishLineTimestamp * 1000);
     document.getElementById('details').innerHTML = `<span style="color: #ff8c00; font-weight: bold;">Predicted Finish: ${finishDate.toUTCString().replace('GMT', 'TCT')}</span>`;
 
+    // --- PREVIOUS WAR UI ---
+    if (previousWarData) {
+        document.getElementById('prev-f1-name').innerText = previousWarData.f1Name;
+        document.getElementById('prev-f1-score').innerText = previousWarData.f1Score.toLocaleString();
+        document.getElementById('prev-f2-name').innerText = previousWarData.f2Name;
+        document.getElementById('prev-f2-score').innerText = previousWarData.f2Score.toLocaleString();
+        const prevFinishDate = new Date(previousWarData.endTime * 1000);
+        document.getElementById('prev-war-details').innerText = `Actual End Time: ${prevFinishDate.toUTCString().replace('GMT', 'TCT')}`;
+    }
+
     // --- TERMS ---
     document.getElementById('radio-f1-name').innerText = stats.f1Name;
     document.getElementById('radio-f2-name').innerText = stats.f2Name;
@@ -169,11 +203,6 @@ function renderUI() {
     if (bufferSeconds < 0 || bufferHours < 5) {
         pointsDiv.classList.remove('hidden');
         
-        // Calculation Logic:
-        // We need to find a new target lead (L) such that the finish time is earlier.
-        // FinishTime = Start + Grace + (IterationsNeeded - 1) * 3600
-        // IterationsNeeded = Ceil( (OriginalTarget - L) / (OriginalTarget * 0.01) )
-        
         const calculatePoints = (requiredBufferHours) => {
             const targetFinishTime = mmTimestamp - (requiredBufferHours * 3600);
             const gracePeriod = 86400;
@@ -182,8 +211,6 @@ function renderUI() {
             if (timeAvailableForIterations < 0) return "Impossible";
             
             const maxIterationsAllowed = Math.floor(timeAvailableForIterations / 3600) + 1;
-            // Reverse of: iterationsNeeded = (Original - Lead) / (Original * 0.01)
-            // Lead = Original - (iterationsNeeded * Original * 0.01)
             const requiredLead = Math.ceil(stats.original - (maxIterationsAllowed * stats.original * 0.01));
             const extraPointsNeeded = Math.max(0, requiredLead - stats.lead);
             return extraPointsNeeded.toLocaleString();
