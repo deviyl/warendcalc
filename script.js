@@ -196,8 +196,8 @@ function renderUI() {
 
     // Status Lead Bar
     const sBar = document.getElementById('winner-status-bar'), sText = document.getElementById('winner-status-text');
-    if (wScore > cScore) { sBar.classList.add('complete-green'); sBar.classList.remove('fail-red'); sText.innerText = "CURRENTLY LEADING"; }
-    else { sBar.classList.remove('complete-green'); sBar.classList.add('fail-red'); sText.innerText = "CURRENTLY TRAILING"; }
+    if (wScore > cScore) { sBar.classList.add('complete-green'); sBar.classList.remove('fail-red'); sText.innerText = "WINNING"; }
+    else { sBar.classList.remove('complete-green'); sBar.classList.add('fail-red'); sText.innerText = "LOSING"; }
 
     // Matchmaking Buffer logic (RESTORED)
     const mmTime = getNextMatchmakingTuesday();
