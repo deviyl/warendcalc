@@ -4,6 +4,7 @@ let currentApiKey = "";
 let finishLineTimestamp = 0;
 let previousWarData = null;
 window.currentWarStats = null;
+let initialDefaultSet = false; // Prevents the slider from resetting while the user is actively adjusting it
 
 function toggleTerms() {
     const isChecked = document.getElementById('terms-checkbox').checked;
@@ -77,6 +78,24 @@ async function updateWarClock() {
                 f1Score: f1.score, f2Score: f2.score,
                 startTime: startTime
             };
+
+            // AUTO-DEFAULT SLIDER TO 5 HOUR DEADLINE SCORE
+            if (!initialDefaultSet) {
+                const mmTime = getNextMatchmakingTuesday();
+                const mmTS = Math.floor(mmTime.getTime() / 1000);
+                const tFinTS = mmTS - (5 * 3600); // 5 hours before deadline
+                const avail = tFinTS - (startTime + 86400);
+                if (avail >= 0) {
+                    const maxIt = Math.floor(avail / 3600) + 1;
+                    const reqLead = Math.ceil(originalTarget - (maxIt * originalTarget * 0.01));
+                    const requiredScore = Math.max(0, reqLead);
+                    const defPct = Math.round((requiredScore / originalTarget) * 100);
+                    
+                    document.getElementById('win-bracket-slider').value = defPct;
+                }
+                initialDefaultSet = true;
+            }
+
         } else {
             window.currentWarStats = { active: false };
         }
@@ -161,7 +180,6 @@ function renderUI() {
     }
     document.getElementById('details').innerHTML = `<span style="color: #ff8c00; font-weight: bold;">Predicted Finish: ${new Date(finishLineTimestamp * 1000).toUTCString().replace('GMT', 'TCT')}</span>`;
 
-    // Terms logic
     document.getElementById('radio-f1-name').innerText = stats.f1Name;
     document.getElementById('radio-f2-name').innerText = stats.f2Name;
     const winnerVal = document.querySelector('input[name="winner"]:checked').value;
@@ -178,7 +196,6 @@ function renderUI() {
     document.getElementById('win-target-label-text').innerHTML = `Winning Faction Target<br>(${wName})`;
     document.getElementById('concede-label-text').innerHTML = `Conceding Faction Target<br>(${cName})`;
 
-    // Winner Target Bar
     const wTarg = Math.round(stats.original * (winGoalPct / 100));
     const wPct = wTarg === 0 ? 100 : Math.min(100, (wScore / wTarg) * 100);
     const wBar = document.getElementById('win-target-bar');
@@ -186,7 +203,13 @@ function renderUI() {
     document.getElementById('win-target-text').innerText = `${wScore.toLocaleString()} / ${wTarg.toLocaleString()} (${Math.round(wPct)}%)`;
     if (wScore >= wTarg && wTarg > 0) wBar.classList.add('complete-green'); else wBar.classList.remove('complete-green');
 
-    // Conceding Target Bar
+    const sBar = document.getElementById('winner-status-bar'), sText = document.getElementById('winner-status-text');
+    if (wScore > cScore) { 
+        sBar.classList.add('complete-green'); sBar.classList.remove('fail-red'); sText.innerText = "WINNING"; 
+    } else { 
+        sBar.classList.remove('complete-green'); sBar.classList.add('fail-red'); sText.innerText = "LOSING"; 
+    }
+
     const cTarg = Math.round(stats.original * (conGoalPct / 100));
     const cPct = cTarg === 0 ? 100 : Math.min(100, (cScore / cTarg) * 100);
     const cBar = document.getElementById('concede-bar');
@@ -194,12 +217,6 @@ function renderUI() {
     document.getElementById('concede-text').innerText = `${cScore.toLocaleString()} / ${cTarg.toLocaleString()} (${Math.round(cPct)}%)`;
     if (cScore >= cTarg && cTarg > 0) cBar.classList.add('complete-green'); else cBar.classList.remove('complete-green');
 
-    // Status Lead Bar
-    const sBar = document.getElementById('winner-status-bar'), sText = document.getElementById('winner-status-text');
-    if (wScore > cScore) { sBar.classList.add('complete-green'); sBar.classList.remove('fail-red'); sText.innerText = "WINNING"; }
-    else { sBar.classList.remove('complete-green'); sBar.classList.add('fail-red'); sText.innerText = "LOSING"; }
-
-    // Matchmaking Buffer logic (RESTORED)
     const mmTime = getNextMatchmakingTuesday();
     const mmTS = Math.floor(mmTime.getTime() / 1000);
     const bSec = mmTS - finishLineTimestamp;
