@@ -4,7 +4,7 @@ let currentApiKey = "";
 let finishLineTimestamp = 0;
 let previousWarData = null;
 window.currentWarStats = null;
-let initialDefaultSet = false; // Prevents the slider from resetting while the user is actively adjusting it
+let initialDefaultSet = false; 
 
 function toggleTerms() {
     const isChecked = document.getElementById('terms-checkbox').checked;
@@ -79,19 +79,25 @@ async function updateWarClock() {
                 startTime: startTime
             };
 
-            // AUTO-DEFAULT SLIDER TO 5 HOUR DEADLINE SCORE
+            // AUTO-DEFAULT WINNING SLIDER (Conceder % + Required Lead %)
             if (!initialDefaultSet) {
                 const mmTime = getNextMatchmakingTuesday();
                 const mmTS = Math.floor(mmTime.getTime() / 1000);
-                const tFinTS = mmTS - (5 * 3600); // 5 hours before deadline
+                const tFinTS = mmTS - (5 * 3600); 
                 const avail = tFinTS - (startTime + 86400);
+                
                 if (avail >= 0) {
                     const maxIt = Math.floor(avail / 3600) + 1;
-                    const reqLead = Math.ceil(originalTarget - (maxIt * originalTarget * 0.01));
-                    const requiredScore = Math.max(0, reqLead);
-                    const defPct = Math.round((requiredScore / originalTarget) * 100);
+                    const reqLeadScore = Math.ceil(originalTarget - (maxIt * originalTarget * 0.01));
                     
-                    document.getElementById('win-bracket-slider').value = defPct;
+                    // Math: (Lead Needed / Original) * 100 = Lead %
+                    const leadPctNeeded = Math.round((reqLeadScore / originalTarget) * 100);
+                    
+                    // Add current Conceder slider value (default is 30) to the Lead %
+                    const concederPct = parseInt(document.getElementById('bracket-slider').value);
+                    const totalWinPct = Math.min(100, concederPct + leadPctNeeded);
+                    
+                    document.getElementById('win-bracket-slider').value = totalWinPct;
                 }
                 initialDefaultSet = true;
             }
