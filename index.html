@@ -94,27 +94,47 @@
                 <label><input type="radio" name="winner" value="f1" checked onchange="updateWarClock()"> <span id="radio-f1-name">F1</span></label>
                 <label><input type="radio" name="winner" value="f2" onchange="updateWarClock()"> <span id="radio-f2-name">F2</span></label>
             </div>
+
             <div class="terms-section">
-                <div class="terms-header"><span id="concede-label-text">Conceding Faction<br>(Faction Name)</span></div>
+                <div class="terms-header"><span id="win-target-label-text">Winning Faction Target</span></div>
+                <div class="terms-bar-bg">
+                    <div id="win-target-bar" class="terms-bar-fill"></div>
+                    <span id="win-target-text" class="terms-bar-text">0 / 0</span>
+                </div>
+                <div class="slider-wrapper">
+                    <div class="slider-label-row">
+                        <span>Winner's Score Goal:</span>
+                        <span id="win-slider-val-display" class="slider-percent">100%</span>
+                    </div>
+                    <input type="range" id="win-bracket-slider" min="0" max="100" value="100" step="1" oninput="updateWarClock()">
+                </div>
+            </div>
+
+            <div class="terms-section" style="margin: 10px 0 25px 0;">
+                <div class="terms-header">Win/Loss Lead Status</div>
+                <div class="terms-bar-bg">
+                    <div id="winner-status-bar" class="terms-bar-fill-static"></div>
+                    <span id="winner-status-text" class="terms-bar-text">Awaiting Data</span>
+                </div>
+            </div>
+
+            <hr style="border:0; border-top:1px solid #441111; margin: 20px 0;">
+
+            <div class="terms-section">
+                <div class="terms-header"><span id="concede-label-text">Conceding Faction Target</span></div>
                 <div class="terms-bar-bg">
                     <div id="concede-bar" class="terms-bar-fill"></div>
                     <span id="concede-text" class="terms-bar-text">0 / 0</span>
                 </div>
                 <div class="slider-wrapper">
                     <div class="slider-label-row">
-                        <span>Target for Maximum Rewards:</span>
+                        <span>Conceder's Score Goal:</span>
                         <span id="slider-val-display" class="slider-percent">30%</span>
                     </div>
                     <input type="range" id="bracket-slider" min="0" max="100" value="30" step="1" oninput="updateWarClock()">
                 </div>
             </div>
-            <div class="terms-section" style="margin-top: 30px;">
-                <div class="terms-header" id="win-label-text">Winning Faction<br>(Faction Name)</div>
-                <div class="terms-bar-bg">
-                    <div id="winner-status-bar" class="terms-bar-fill-static"></div>
-                    <span id="winner-status-text" class="terms-bar-text">Awaiting Data</span>
-                </div>
-            </div>
+
             <div id="matchmaking-buffer" class="buffer-display">Calculating matchmaking buffer...</div>
             <div id="points-required" class="points-display hidden">Calculating points needed...</div>
         </div>
