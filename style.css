@@ -132,3 +132,25 @@ input[type="range"]::-webkit-slider-thumb {
 .buffer-safe { color: #00ff00; font-weight: bold; }
 .buffer-danger { color: #ff0000; font-weight: bold; }
 .points-val { color: #fff; font-weight: bold; }
+
+.deadline-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+.deadline-table th {
+    color: #ff8c00;
+    border-bottom: 1px solid #441111;
+    padding: 8px;
+    text-align: left;
+}
+.deadline-table td {
+    padding: 8px;
+    border-bottom: 1px solid #220808;
+    text-align: left;
+}
+.status-cell {
+    font-weight: bold;
+    text-transform: uppercase;
+}
