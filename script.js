@@ -188,13 +188,8 @@ function renderUI() {
     document.getElementById('win-slider-val-display').innerText = winGoalPct + "%";
     document.getElementById('slider-val-display').innerText = conGoalPct + "%";
 
-    const wName = (winnerVal === 'f1') ? stats.f1Name : stats.f2Name;
-    const cName = (winnerVal === 'f1') ? stats.f2Name : stats.f1Name;
     const wScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
     const cScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
-
-    document.getElementById('win-target-label-text').innerHTML = `Winning Faction Target<br>(${wName})`;
-    document.getElementById('concede-label-text').innerHTML = `Conceding Faction Target<br>(${cName})`;
 
     const wTarg = Math.round(stats.original * (winGoalPct / 100));
     const wPct = wTarg === 0 ? 100 : Math.min(100, (wScore / wTarg) * 100);
@@ -229,20 +224,37 @@ function renderUI() {
         pDiv.classList.remove('hidden');
         const sliderLead = Math.max(0, Math.round(stats.original * ((winGoalPct - conGoalPct) / 100)));
 
-        const generateLine = (hours) => {
+        const getRowData = (hours) => {
             const tFinTS = mmTS - (hours * 3600);
             const avail = tFinTS - (stats.startTime + 86400);
-            if (avail < 0) return `In order for the war to end ${hours} hours before the deadline, it is currently <span class="buffer-danger">Impossible</span>.`;
+            if (avail < 0) return `<tr><td>${hours} Hour</td><td colspan="2" class="buffer-danger">Impossible - deadline too early</td></tr>`;
             
             const maxIt = Math.floor(avail / 3600) + 1;
             const xxx = Math.ceil(stats.original - (maxIt * stats.original * 0.01));
             const statusColor = sliderLead >= xxx ? 'buffer-safe' : 'buffer-danger';
-            const statusWord = sliderLead >= xxx ? 'will' : 'will NOT';
+            const statusWord = sliderLead >= xxx ? 'YES' : 'NO';
 
-            return `In order for the war to end ${hours} hours before the deadline, the winning team must be leading by <span class="points-val">${xxx.toLocaleString()}</span>. According to your current slider positions, the winning team will have a lead of <span class="points-val">${sliderLead.toLocaleString()}</span> and <span class="${statusColor}">${statusWord}</span> meet that goal.`;
+            return `<tr>
+                <td>${hours} Hour</td>
+                <td><span class="points-val">${xxx.toLocaleString()}</span></td>
+                <td class="status-cell ${statusColor}">${statusWord}</td>
+            </tr>`;
         };
 
-        pDiv.innerHTML = `${generateLine(1)}<br><br>${generateLine(5)}`;
+        pDiv.innerHTML = `
+            <div style="text-align:left; margin-bottom:5px; font-weight:bold; color:#cca3a3;">Lead Required to Meet Deadlines:</div>
+            <table class="deadline-table">
+                <thead>
+                    <tr><th>Deadline</th><th>Lead Needed</th><th>Goal Met?</th></tr>
+                </thead>
+                <tbody>
+                    ${getRowData(1)}
+                    ${getRowData(5)}
+                </tbody>
+            </table>
+            <div style="text-align:left; font-size:0.8em; margin-top:8px; color:#888;">
+                Your planned lead (based on sliders): <span class="points-val">${sliderLead.toLocaleString()}</span>
+            </div>`;
     } else { pDiv.classList.add('hidden'); }
 
     if (bSec < 0) { bDiv.innerHTML = `<span class="buffer-danger">Predicted finish is AFTER matchmaking on:<br>Tuesday (${dStr}) at 12:00 TCT</span>`; }
