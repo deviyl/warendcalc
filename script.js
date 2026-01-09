@@ -79,7 +79,6 @@ async function updateWarClock() {
                 startTime: startTime
             };
 
-            // AUTO-DEFAULT WINNING SLIDER (Conceder % + Required Lead %)
             if (!initialDefaultSet) {
                 const mmTime = getNextMatchmakingTuesday();
                 const mmTS = Math.floor(mmTime.getTime() / 1000);
@@ -92,7 +91,6 @@ async function updateWarClock() {
                     const leadPctNeeded = Math.round((reqLeadScore / originalTarget) * 100);
                     const concederPct = parseInt(document.getElementById('bracket-slider').value);
                     const totalWinPct = Math.min(100, concederPct + leadPctNeeded);
-                    
                     document.getElementById('win-bracket-slider').value = totalWinPct;
                 }
                 initialDefaultSet = true;
@@ -220,7 +218,7 @@ function renderUI() {
     if (cScore >= cTarg && cTarg > 0) cBar.classList.add('complete-green'); else cBar.classList.remove('complete-green');
 
     const mmTime = getNextMatchmakingTuesday();
-    const mmTS = Math.floor(mmTS = Math.floor(mmTime.getTime() / 1000));
+    const mmTS = Math.floor(mmTime.getTime() / 1000);
     const bSec = mmTS - finishLineTimestamp;
     const bHrs = (bSec / 3600).toFixed(1);
     const bDiv = document.getElementById('matchmaking-buffer');
