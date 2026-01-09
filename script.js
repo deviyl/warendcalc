@@ -89,11 +89,7 @@ async function updateWarClock() {
                 if (avail >= 0) {
                     const maxIt = Math.floor(avail / 3600) + 1;
                     const reqLeadScore = Math.ceil(originalTarget - (maxIt * originalTarget * 0.01));
-                    
-                    // Math: (Lead Needed / Original) * 100 = Lead %
                     const leadPctNeeded = Math.round((reqLeadScore / originalTarget) * 100);
-                    
-                    // Add current Conceder slider value (default is 30) to the Lead %
                     const concederPct = parseInt(document.getElementById('bracket-slider').value);
                     const totalWinPct = Math.min(100, concederPct + leadPctNeeded);
                     
@@ -224,7 +220,7 @@ function renderUI() {
     if (cScore >= cTarg && cTarg > 0) cBar.classList.add('complete-green'); else cBar.classList.remove('complete-green');
 
     const mmTime = getNextMatchmakingTuesday();
-    const mmTS = Math.floor(mmTime.getTime() / 1000);
+    const mmTS = Math.floor(mmTS = Math.floor(mmTime.getTime() / 1000));
     const bSec = mmTS - finishLineTimestamp;
     const bHrs = (bSec / 3600).toFixed(1);
     const bDiv = document.getElementById('matchmaking-buffer');
@@ -233,15 +229,22 @@ function renderUI() {
 
     if (bSec < 0 || bHrs < 5) {
         pDiv.classList.remove('hidden');
-        const calcP = (rh) => {
-            const tFinTS = mmTS - (rh * 3600);
+        const sliderLead = Math.max(0, Math.round(stats.original * ((winGoalPct - conGoalPct) / 100)));
+
+        const generateLine = (hours) => {
+            const tFinTS = mmTS - (hours * 3600);
             const avail = tFinTS - (stats.startTime + 86400);
-            if (avail < 0) return "Impossible";
+            if (avail < 0) return `In order for the war to end ${hours} hours before the deadline, it is currently <span class="buffer-danger">Impossible</span>.`;
+            
             const maxIt = Math.floor(avail / 3600) + 1;
-            const reqL = Math.ceil(stats.original - (maxIt * stats.original * 0.01));
-            return Math.max(0, reqL - stats.lead).toLocaleString();
+            const xxx = Math.ceil(stats.original - (maxIt * stats.original * 0.01));
+            const statusColor = sliderLead >= xxx ? 'buffer-safe' : 'buffer-danger';
+            const statusWord = sliderLead >= xxx ? 'will' : 'will NOT';
+
+            return `In order for the war to end ${hours} hours before the deadline, the winning team must be leading by <span class="points-val">${xxx.toLocaleString()}</span>. According to your current slider positions, the winning team will have a lead of <span class="points-val">${sliderLead.toLocaleString()}</span> and <span class="${statusColor}">${statusWord}</span> meet that goal.`;
         };
-        pDiv.innerHTML = `To clear deadline by 1 hour, gain: <span class="points-val">${calcP(1)}</span> points<br>To clear deadline by 5 hours, gain: <span class="points-val">${calcP(5)}</span> points`;
+
+        pDiv.innerHTML = `${generateLine(1)}<br><br>${generateLine(5)}`;
     } else { pDiv.classList.add('hidden'); }
 
     if (bSec < 0) { bDiv.innerHTML = `<span class="buffer-danger">Predicted finish is AFTER matchmaking on:<br>Tuesday (${dStr}) at 12:00 TCT</span>`; }
