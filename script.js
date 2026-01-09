@@ -242,10 +242,10 @@ function renderUI() {
         };
 
         pDiv.innerHTML = `
-            <div style="text-align:left; margin-bottom:5px; font-weight:bold; color:#cca3a3;">Lead Required to Meet Deadlines:</div>
+            <div style="text-align:left; margin-bottom:5px; font-weight:bold; color:#cca3a3;">Lead Required to end before next Matchmaking:</div>
             <table class="deadline-table">
                 <thead>
-                    <tr><th>Deadline</th><th>Lead Needed</th><th>Goal Met?</th></tr>
+                    <tr><th>Hours Before</th><th>Lead Needed</th><th>Goal Met?</th></tr>
                 </thead>
                 <tbody>
                     ${getRowData(1)}
