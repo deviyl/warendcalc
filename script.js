@@ -152,6 +152,19 @@ function renderUI() {
     termsToggle.classList.remove('hidden');
 
     const now = Math.floor(Date.now() / 1000);
+
+    // --- Start Time Logic ---
+    const startContainer = document.getElementById('start-timer-container');
+    if (now < stats.startTime) {
+        startContainer.classList.remove('hidden');
+        const startSec = stats.startTime - now;
+        const sh = Math.floor(startSec / 3600), sm = Math.floor((startSec % 3600) / 60), ss = Math.floor(startSec % 60);
+        document.getElementById('start-countdown').innerText = `${sh.toString().padStart(2, '0')}:${sm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`;
+    } else {
+        startContainer.classList.add('hidden');
+    }
+    // ------------------------
+
     const sec = Math.max(0, finishLineTimestamp - now);
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60);
     document.getElementById('countdown').innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
