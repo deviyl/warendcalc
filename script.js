@@ -257,6 +257,6 @@ function renderUI() {
             </div>`;
     } else { pDiv.classList.add('hidden'); }
 
-    if (bSec < 0) { bDiv.innerHTML = `<span class="buffer-danger">Predicted finish is AFTER matchmaking on:<br>Tuesday (${dStr}) at 12:00 TCT</span>`; }
+    if (bSec < 0) { bDiv.innerHTML = `<span class="buffer-danger">Predicted finish is AFTER matchmaking on:<br>Tuesday (${dStr}) at 12:00 TCT<br>(this is based on current scores, not sliders)</span>`; }
     else { bDiv.innerHTML = `End <span class="${bHrs >= 5 ? 'buffer-safe' : 'buffer-danger'}">${bHrs} hours</span> before matchmaking on Tuesday (${dStr}) at 12:00 TCT`; }
 }
