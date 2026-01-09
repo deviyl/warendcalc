@@ -50,6 +50,18 @@ button { padding: 12px 20px; border-radius: 4px; border: none; background: #ff45
     text-shadow: 0 0 15px rgba(255, 69, 0, 0.4); 
 }
 
+/* Specific styling for the Start Timer */
+.timer-start {
+    color: #00ff00 !important;
+    text-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+#start-timer-container {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #441111;
+}
+
 .original-target-text { color: #cca3a3; font-size: 0.8em; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
 
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
