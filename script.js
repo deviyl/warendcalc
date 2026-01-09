@@ -153,7 +153,6 @@ function renderUI() {
 
     const now = Math.floor(Date.now() / 1000);
 
-    // --- Start Time Logic ---
     const startContainer = document.getElementById('start-timer-container');
     if (now < stats.startTime) {
         startContainer.classList.remove('hidden');
@@ -163,7 +162,6 @@ function renderUI() {
     } else {
         startContainer.classList.add('hidden');
     }
-    // ------------------------
 
     const sec = Math.max(0, finishLineTimestamp - now);
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60);
