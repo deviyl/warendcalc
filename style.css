@@ -195,6 +195,10 @@ button {
     margin-bottom: 20px;
 }
 
+u {
+    text-decoration-color: #ff4500;
+}
+
 .container-footer {
     display: flex;
     justify-content: space-between;
