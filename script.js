@@ -1,227 +1,202 @@
-let apiInterval;
-let tickerInterval;
-let currentApiKey = "";
-let finishLineTimestamp = 0;
-let previousWarData = null;
-let selectedDeadlineHours = 5;
-let initialDefaultSet = false;
-window.currentWarStats = null;
-
-function toggleTerms() {
-    const isChecked = document.getElementById('terms-checkbox').checked;
-    const termsContainer = document.getElementById('terms-container');
-    isChecked ? termsContainer.classList.remove('hidden') : termsContainer.classList.add('hidden');
-}
-
-function toggleLastWar() {
-    const isChecked = document.getElementById('last-war-checkbox').checked;
-    const lastWarContainer = document.getElementById('last-war-container');
-    isChecked ? lastWarContainer.classList.remove('hidden') : lastWarContainer.classList.add('hidden');
-}
-
-function getNextMatchmakingTuesday() {
-    const now = new Date();
-    const nextTuesday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    while (nextTuesday.getUTCDay() !== 2) { nextTuesday.setUTCDate(nextTuesday.getUTCDate() + 1); }
-    nextTuesday.setUTCHours(12, 0, 0, 0);
-    if (nextTuesday.getTime() < now.getTime()) { nextTuesday.setUTCDate(nextTuesday.getUTCDate() + 7); }
-    return nextTuesday;
-}
+let apiKey = '';
+let warData = null;
+let lastWarData = null;
+let timerInterval = null;
 
 async function startTracking() {
-    const keyInput = document.getElementById('api-key').value.trim();
-    if (keyInput.length < 16) {
-        alert("Please enter a valid Torn API key.");
-        return;
-    }
-    currentApiKey = keyInput;
+    apiKey = document.getElementById('api-key').value;
+    if (!apiKey) return;
     document.getElementById('setup-area').classList.add('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
-    
-    await updateWarClock();
-    apiInterval = setInterval(updateWarClock, 30000);
-    tickerInterval = setInterval(renderUI, 1000);
+    fetchData();
+    setInterval(fetchData, 30000);
+    timerInterval = setInterval(renderUI, 1000);
 }
 
-async function updateWarClock() {
-    if (!currentApiKey) return;
+async function fetchData() {
     try {
-        const response = await fetch(`https://api.torn.com/faction/?selections=rankedwars&key=${currentApiKey}`);
+        const response = await fetch(`https://api.torn.com/factions/?selections=rankedwars&key=${apiKey}`);
         const data = await response.json();
-        const sortedIds = Object.keys(data.rankedwars).sort((a, b) => b - a);
-        const warData = data.rankedwars[sortedIds[0]];
-        const isLiveOrScheduled = warData.war.end === 0;
-
-        if (isLiveOrScheduled) {
-            const factions = Object.values(warData.factions);
-            const f1 = factions[0], f2 = factions[1];
-            const now = Math.floor(Date.now() / 1000);
-            const startTime = warData.war.start; 
-            const currentLead = Math.abs(f1.score - f2.score);
-            const currentTargetLead = warData.war.target;
-            const secondsElapsed = Math.max(0, now - startTime); 
-            const gracePeriod = 86400; 
-            
-            let originalTarget;
-            if (secondsElapsed < gracePeriod) {
-                originalTarget = currentTargetLead;
-            } else {
-                const hoursPastGrace = Math.floor((secondsElapsed - gracePeriod) / 3600);
-                const currentIterations = hoursPastGrace + 1;
-                originalTarget = Math.round(currentTargetLead / (1 - (0.01 * currentIterations)));
-            }
-
-            const totalIterationsNeeded = Math.ceil((originalTarget - currentLead) / (originalTarget * 0.01));
-            finishLineTimestamp = startTime + gracePeriod + ((totalIterationsNeeded - 1) * 3600);
-
-            window.currentWarStats = {
-                active: true,
-                lead: currentLead,
-                leader: f1.score > f2.score ? f1.name : f2.name,
-                target: currentTargetLead,
-                original: originalTarget,
-                f1Name: f1.name, f2Name: f2.name,
-                f1Score: f1.score, f2Score: f2.score,
-                startTime: startTime
-            };
-            initialDefaultSet = true;
+        const wars = data.rankedwars;
+        if (wars && Object.keys(wars).length > 0) {
+            const warKey = Object.keys(wars)[0];
+            warData = wars[warKey];
+            document.getElementById('no-war-message').classList.add('hidden');
+            document.getElementById('active-war-elements').classList.remove('hidden');
+            document.getElementById('terms-toggle-wrapper').classList.remove('hidden');
         } else {
-            window.currentWarStats = { active: false };
-        }
-
-        const lastWarIndex = isLiveOrScheduled ? 1 : 0;
-        if (sortedIds.length > lastWarIndex) {
-            const prevWar = data.rankedwars[sortedIds[lastWarIndex]];
-            const prevFactions = Object.values(prevWar.factions);
-            previousWarData = {
-                f1Name: prevFactions[0].name, f1Score: prevFactions[0].score,
-                f2Name: prevFactions[1].name, f2Score: prevFactions[1].score,
-                endTime: prevWar.war.end
-            };
+            warData = null;
+            document.getElementById('no-war-message').classList.remove('hidden');
+            document.getElementById('active-war-elements').classList.add('hidden');
+            document.getElementById('terms-toggle-wrapper').classList.add('hidden');
+            document.getElementById('terms-container').classList.add('hidden');
+            document.getElementById('terms-checkbox').checked = false;
         }
     } catch (e) { console.error(e); }
 }
 
-function renderUI() {
-    const stats = window.currentWarStats;
-    if (!stats) return;
+async function fetchLastWar() {
+    try {
+        const response = await fetch(`https://api.torn.com/factions/?selections=basic&key=${apiKey}`);
+        const data = await response.json();
+        const factionId = data.faction_id;
+        const logRes = await fetch(`https://api.torn.com/factions/${factionId}?selections=reports&key=${apiKey}`);
+        const logData = await logRes.json();
+        const reports = logData.reports;
+        let lastReportKey = Object.keys(reports).sort((a,b) => b-a).find(k => reports[k].type === 'ranked_war_report');
+        if (lastReportKey) {
+            const repRes = await fetch(`https://api.torn.com/factions/${factionId}?selections=report&report_id=${lastReportKey}&key=${apiKey}`);
+            lastWarData = await repRes.json();
+            renderLastWar();
+        }
+    } catch (e) { console.error(e); }
+}
 
-    if (previousWarData) {
-        document.getElementById('prev-f1-name').innerText = previousWarData.f1Name;
-        document.getElementById('prev-f1-score').innerText = previousWarData.f1Score.toLocaleString();
-        document.getElementById('prev-f2-name').innerText = previousWarData.f2Name;
-        document.getElementById('prev-f2-score').innerText = previousWarData.f2Score.toLocaleString();
-        document.getElementById('prev-war-details').innerText = `Actual End Time: ${new Date(previousWarData.endTime * 1000).toUTCString().replace('GMT', 'TCT')}`;
-    }
-
-    const warElements = document.getElementById('active-war-elements');
-    const noWarMsg = document.getElementById('no-war-message');
-    const termsToggle = document.getElementById('terms-toggle-wrapper');
-
-    if (!stats.active) {
-        warElements.classList.add('hidden');
-        noWarMsg.classList.remove('hidden');
-        termsToggle.classList.add('hidden');
-        return;
-    }
-
-    warElements.classList.remove('hidden');
-    noWarMsg.classList.add('hidden');
-    termsToggle.classList.remove('hidden');
-
-    const now = Math.floor(Date.now() / 1000);
-    const mmTime = getNextMatchmakingTuesday();
-    const mmTS = Math.floor(mmTime.getTime() / 1000);
-
-    const startContainer = document.getElementById('start-timer-container');
-    if (now < stats.startTime) {
-        startContainer.classList.remove('hidden');
-        const sSec = stats.startTime - now;
-        const sh = Math.floor(sSec / 3600), sm = Math.floor((sSec % 3600) / 60), ss = Math.floor(sSec % 60);
-        document.getElementById('start-countdown').innerText = `${sh.toString().padStart(2, '0')}:${sm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`;
+function toggleLastWar() {
+    const container = document.getElementById('last-war-container');
+    if (document.getElementById('last-war-checkbox').checked) {
+        container.classList.remove('hidden');
+        fetchLastWar();
     } else {
-        startContainer.classList.add('hidden');
+        container.classList.add('hidden');
+    }
+}
+
+function toggleTerms() {
+    const container = document.getElementById('terms-container');
+    if (document.getElementById('terms-checkbox').checked) {
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
+function updateWarClock() { renderUI(); }
+
+function renderUI() {
+    if (!warData) return;
+    const now = Math.floor(Date.now() / 1000);
+    const fIds = Object.keys(warData.factions);
+    const f1 = warData.factions[fIds[0]];
+    const f2 = warData.factions[fIds[1]];
+    const target = warData.war.target;
+    
+    document.getElementById('f1-name').innerText = f1.name;
+    document.getElementById('f1-score').innerText = f1.score;
+    document.getElementById('f2-name').innerText = f2.name;
+    document.getElementById('f2-score').innerText = f2.score;
+    document.getElementById('radio-f1-name').innerText = f1.name;
+    document.getElementById('radio-f2-name').innerText = f2.name;
+    document.getElementById('label-f1').innerText = f1.name;
+    document.getElementById('label-f2').innerText = f2.name;
+    document.getElementById('orig-target-display').innerText = `Original Target: ${target}`;
+
+    const startTime = warData.war.start;
+    if (now < startTime) {
+        document.getElementById('start-timer-container').classList.remove('hidden');
+        document.getElementById('countdown').classList.add('hidden');
+        document.getElementById('start-countdown').innerText = formatTime(startTime - now);
+        return;
+    } else {
+        document.getElementById('start-timer-container').classList.add('hidden');
+        document.getElementById('countdown').classList.remove('hidden');
     }
 
-    const sec = Math.max(0, finishLineTimestamp - now);
-    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60);
-    document.getElementById('countdown').innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    document.getElementById('orig-target-display').innerText = `Original Target: ${stats.original.toLocaleString()}`;
+    const selectedWinnerSide = document.querySelector('input[name="winner"]:checked').value;
+    const winner = selectedWinnerSide === 'f1' ? f1 : f2;
+    const loser = selectedWinnerSide === 'f1' ? f2 : f1;
+    const bracketPct = document.getElementById('bracket-slider').value / 100;
     
-    document.getElementById('f1-name').innerText = stats.f1Name;
-    document.getElementById('f1-score').innerText = stats.f1Score.toLocaleString();
-    document.getElementById('f2-name').innerText = stats.f2Name;
-    document.getElementById('f2-score').innerText = stats.f2Score.toLocaleString();
-    document.getElementById('label-f1').innerText = stats.f1Name;
-    document.getElementById('label-f2').innerText = stats.f2Name;
-    document.getElementById('target-left').innerText = stats.target.toLocaleString();
-    document.getElementById('target-right').innerText = stats.target.toLocaleString();
+    const loserTarget = Math.floor(target * bracketPct);
+    const winBuffer = target - loserTarget;
+    const currentLead = winner.score - loser.score;
+    const remaining = winBuffer - currentLead;
 
-    const fillL = document.getElementById('fill-left'), fillR = document.getElementById('fill-right');
-    const valL = document.getElementById('val-left'), valR = document.getElementById('val-right');
-    fillL.style.width = "0%"; fillR.style.width = "0%";
-    valL.innerText = ""; valR.innerText = "";
-    const bPct = Math.min(100, (stats.lead / stats.target) * 100).toFixed(1);
-    if (stats.f1Score > stats.f2Score) { fillL.style.width = bPct + "%"; valL.innerText = stats.lead.toLocaleString(); }
-    else if (stats.f2Score > stats.f1Score) { fillR.style.width = bPct + "%"; valR.innerText = stats.lead.toLocaleString(); }
+    const fillLeft = document.getElementById('fill-left');
+    const fillRight = document.getElementById('fill-right');
+    const valLeft = document.getElementById('val-left');
+    const valRight = document.getElementById('val-right');
+
+    if (f1.score >= f2.score) {
+        const p = Math.min(100, (f1.score - f2.score) / target * 100);
+        fillLeft.style.width = p + '%';
+        fillRight.style.width = '0%';
+        valLeft.innerText = f1.score - f2.score;
+        valRight.innerText = '';
+    } else {
+        const p = Math.min(100, (f2.score - f1.score) / target * 100);
+        fillRight.style.width = p + '%';
+        fillLeft.style.width = '0%';
+        valRight.innerText = f2.score - f1.score;
+        valLeft.innerText = '';
+    }
+
+    document.getElementById('target-left').innerText = target;
+    document.getElementById('target-right').innerText = target;
+
+    const winBar = document.getElementById('win-target-bar');
+    const winTxt = document.getElementById('win-target-text');
+    const winProgress = Math.min(100, (winner.score / (loser.score + winBuffer)) * 100);
+    winBar.style.width = winProgress + '%';
+    winTxt.innerText = `${winner.score} / ${loser.score + winBuffer}`;
+    document.getElementById('win-slider-val-display').innerText = `${loser.score + winBuffer} pts`;
+
+    const statusOuter = document.getElementById('winner-status-bar');
+    const statusTxt = document.getElementById('winner-status-text');
+    if (winner.score >= loser.score + winBuffer) {
+        statusOuter.className = 'terms-bar-fill-static complete-green';
+        statusTxt.innerText = "Target Reached";
+    } else {
+        statusOuter.className = 'terms-bar-fill-static';
+        statusTxt.innerText = "Pushing to Target";
+    }
+
+    const conBar = document.getElementById('concede-bar');
+    const conTxt = document.getElementById('concede-text');
+    const conProgress = Math.min(100, (loser.score / loserTarget) * 100);
+    conBar.style.width = conProgress + '%';
+    conBar.className = loser.score > loserTarget ? 'terms-bar-fill fail-red' : 'terms-bar-fill';
+    conTxt.innerText = `${loser.score} / ${loserTarget}`;
+    document.getElementById('slider-val-display').innerText = `${document.getElementById('bracket-slider').value}% (${loserTarget} pts)`;
+
+    const diff = winner.score - loser.score;
+    const finishLineTimestamp = diff >= winBuffer ? now : now + (remaining / (warData.war.start > 0 ? 0.5 : 1)); 
+    const timeToFinish = Math.max(0, remaining);
     
-    document.getElementById('details').innerHTML = `<div class="predicted-finish">Predicted Finish: ${new Date(finishLineTimestamp * 1000).toUTCString().replace('GMT', 'TCT')}</div>`;
+    document.getElementById('countdown').innerText = formatTime(timeToFinish);
+    document.getElementById('details').innerHTML = `<div class="predicted-finish">Predicted Finish: ${new Date(now + timeToFinish * 1).toUTCString().replace('GMT', 'TCT')}</div>`;
 
-    const calculateLeadForHours = (hrs) => {
-        const tFinTS = mmTS - (hrs * 3600);
-        const avail = tFinTS - (stats.startTime + 86400);
-        if (avail < 0) return stats.original;
-        const maxIt = Math.floor(avail / 3600) + 1;
-        return Math.ceil(stats.original - (maxIt * stats.original * 0.01));
-    };
-
-    const leadNeeded = calculateLeadForHours(selectedDeadlineHours);
-    document.getElementById('radio-f1-name').innerText = stats.f1Name;
-    document.getElementById('radio-f2-name').innerText = stats.f2Name;
+    const bufferEl = document.getElementById('matchmaking-buffer');
+    const pointsReqEl = document.getElementById('points-required');
+    const lead = f1.score - f2.score;
+    const absLead = Math.abs(lead);
     
-    const winnerVal = document.querySelector('input[name="winner"]:checked').value;
-    const conGoalPct = parseInt(document.getElementById('bracket-slider').value);
-    document.getElementById('slider-val-display').innerText = conGoalPct + "%";
-    
-    const wScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
-    const cScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
-    const cTarg = Math.round(stats.original * (conGoalPct / 100));
-    const wTarg = cTarg + leadNeeded;
+    if (absLead >= target) {
+        bufferEl.innerHTML = `<span class="buffer-danger">War Ended</span>`;
+        pointsReqEl.classList.add('hidden');
+    } else {
+        const buffer = target - absLead;
+        bufferEl.innerHTML = `Matchmaking Buffer: <span class="${buffer < 100 ? 'buffer-danger' : 'buffer-safe'}">${buffer}</span>`;
+        pointsReqEl.classList.remove('hidden');
+        pointsReqEl.innerHTML = `Points to end: <span class="points-val">${buffer}</span>`;
+    }
+}
 
-    const winGoalLabel = document.getElementById('win-slider-val-display');
-    if (winGoalLabel) winGoalLabel.innerText = wTarg.toLocaleString() + " pts";
+function renderLastWar() {
+    if (!lastWarData) return;
+    const f1 = lastWarData.report.factions[Object.keys(lastWarData.report.factions)[0]];
+    const f2 = lastWarData.report.factions[Object.keys(lastWarData.report.factions)[1]];
+    document.getElementById('prev-f1-name').innerText = f1.name;
+    document.getElementById('prev-f1-score').innerText = f1.score;
+    document.getElementById('prev-f2-name').innerText = f2.name;
+    document.getElementById('prev-f2-score').innerText = f2.score;
+    document.getElementById('prev-war-details').innerText = `Result: ${f1.score > f2.score ? f1.name : f2.name} Won`;
+}
 
-    const wBarPct = wTarg === 0 ? 100 : Math.min(100, (wScore / wTarg) * 100);
-    const wBar = document.getElementById('win-target-bar');
-    wBar.style.width = wBarPct + "%";
-    document.getElementById('win-target-text').innerText = `${wScore.toLocaleString()} / ${wTarg.toLocaleString()} (${Math.round(wBarPct)}%)`;
-    wScore >= wTarg && wTarg > 0 ? wBar.classList.add('complete-green') : wBar.classList.remove('complete-green');
-
-    const sBar = document.getElementById('winner-status-bar'), sText = document.getElementById('winner-status-text');
-    if (wScore > cScore) { sBar.classList.add('complete-green'); sBar.classList.remove('fail-red'); sText.innerText = "WINNING"; }
-    else { sBar.classList.remove('complete-green'); sBar.classList.add('fail-red'); sText.innerText = "LOSING"; }
-
-    const cBarPct = cTarg === 0 ? 100 : Math.min(100, (cScore / cTarg) * 100);
-    const cBar = document.getElementById('concede-bar');
-    cBar.style.width = cBarPct + "%";
-    document.getElementById('concede-text').innerText = `${cScore.toLocaleString()} / ${cTarg.toLocaleString()} (${Math.round(cBarPct)}%)`;
-    cScore >= cTarg && cTarg > 0 ? cBar.classList.add('complete-green') : cBar.classList.remove('complete-green');
-
-    const bSec = mmTS - finishLineTimestamp;
-    const bHrs = (bSec / 3600).toFixed(1);
-    const bDiv = document.getElementById('matchmaking-buffer');
-    const pDiv = document.getElementById('points-required');
-    const dStr = mmTime.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
-
-    pDiv.classList.remove('hidden');
-    const getRow = (hrs) => `<tr><td>${hrs} Hour${hrs > 1 ? 's' : ''}</td><td><span class="points-val">${calculateLeadForHours(hrs).toLocaleString()}</span></td><td><input type="radio" name="deadline-pref" value="${hrs}" ${selectedDeadlineHours === hrs ? 'checked' : ''} onchange="selectedDeadlineHours = parseInt(this.value); renderUI();"></td></tr>`;
-
-    pDiv.innerHTML = `<div style="text-align:left; margin-bottom:5px; font-weight:bold; color:#cca3a3;">Select Target Buffer:</div>
-        <table class="deadline-table">
-            <thead><tr><th>Before MM</th><th>Lead Needed</th><th>Set Goal</th></tr></thead>
-            <tbody>${getRow(1)}${getRow(5)}${getRow(12)}</tbody>
-        </table>`;
-
-    if (bSec < 0) { bDiv.innerHTML = `<span class="buffer-danger">Predicted finish is AFTER matchmaking on:<br>Tuesday (${dStr}) at 12:00 TCT</span>`; }
-    else { bDiv.innerHTML = `End <span class="${bHrs >= selectedDeadlineHours ? 'buffer-safe' : 'buffer-danger'}">${bHrs} hours</span> before matchmaking on Tuesday (${dStr}) at 12:00 TCT`; }
+function formatTime(sec) {
+    if (sec <= 0) return "00:00:00";
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    return [h, m, s].map(v => v < 10 ? "0" + v : v).join(":");
 }
