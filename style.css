@@ -150,19 +150,35 @@ input[type="range"]::-webkit-slider-thumb {
     border-collapse: collapse;
     margin-top: 10px;
     font-size: 0.9em;
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
 }
 .deadline-table th {
     color: #ff8c00;
     border-bottom: 1px solid #441111;
-    padding: 8px;
+    padding: 10px 8px;
     text-align: left;
 }
 .deadline-table td {
-    padding: 8px;
+    padding: 10px 8px;
     border-bottom: 1px solid #220808;
     text-align: left;
+    vertical-align: middle;
 }
-.status-cell {
-    font-weight: bold;
-    text-transform: uppercase;
+/* Row hover effect to make clicking easier */
+.deadline-table tr:hover td {
+    background: rgba(255, 69, 0, 0.05);
+}
+
+/* Centering the selection column */
+.deadline-table th:last-child, 
+.deadline-table td:last-child {
+    text-align: center;
+}
+
+.deadline-table input[type="radio"] {
+    cursor: pointer;
+    margin: 0;
+    accent-color: #ff4500;
+    transform: scale(1.2);
 }
