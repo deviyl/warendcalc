@@ -17,13 +17,11 @@
             </div>
 
             <div id="dashboard" class="hidden">
-                <div id="no-war-message" class="hidden" style="padding: 40px 0; font-size: 1.5em; color: #ff4500; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">
-                    No Active War
-                </div>
+                <div id="no-war-message" class="hidden">No Active War</div>
 
                 <div id="active-war-elements">
                     <div id="start-timer-container" class="hidden">
-                        <div style="font-size: 0.9em; color: #00ff00; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;">War Starts In:</div>
+                        <div class="terms-header" style="color: #00ff00;">War Starts In:</div>
                         <div class="timer timer-start" id="start-countdown">00:00:00</div>
                     </div>
 
@@ -75,25 +73,24 @@
             </div>
         </div>
 
-        <div id="last-war-container" class="container hidden" style="margin-top: 20px;">
+        <div id="last-war-container" class="container hidden">
             <h2 class="terms-title">Previous War Results</h2>
-            <div id="last-war-content">
-                <div class="stats-grid">
-                    <div class="faction-card">
-                        <div id="prev-f1-name" class="faction-name">Loading...</div>
-                        <div id="prev-f1-score" class="score">0</div>
-                    </div>
-                    <div class="faction-card">
-                        <div id="prev-f2-name" class="faction-name">Loading...</div>
-                        <div id="prev-f2-score" class="score">0</div>
-                    </div>
+            <div class="stats-grid">
+                <div class="faction-card">
+                    <div id="prev-f1-name" class="faction-name">Loading...</div>
+                    <div id="prev-f1-score" class="score">0</div>
                 </div>
-                <div id="prev-war-details" style="font-size: 0.9em; color: #ff8c00; font-weight: bold;"></div>
+                <div class="faction-card">
+                    <div id="prev-f2-name" class="faction-name">Loading...</div>
+                    <div id="prev-f2-score" class="score">0</div>
+                </div>
             </div>
+            <div id="prev-war-details" class="faction-name"></div>
         </div>
 
-        <div id="terms-container" class="container hidden" style="margin-top: 20px;">
+        <div id="terms-container" class="container hidden">
             <h2 class="terms-title">War Terms Coordination</h2>
+            
             <div class="winner-selection">
                 <span>Select Winner:</span>
                 <label><input type="radio" name="winner" value="f1" checked onchange="updateWarClock()"> <span id="radio-f1-name">F1</span></label>
@@ -101,20 +98,20 @@
             </div>
 
             <div class="terms-section">
-                <div class="terms-header"><span id="win-target-label-text">Winning Faction Target</span></div>
+                <div class="terms-header">Winning Faction Target</div>
                 <div class="terms-bar-bg">
                     <div id="win-target-bar" class="terms-bar-fill"></div>
                     <span id="win-target-text" class="terms-bar-text">0 / 0</span>
                 </div>
                 <div class="slider-wrapper">
                     <div class="slider-label-row">
-                        <span>Required Win Score (based on selection below):</span>
+                        <span>Required Win Score:</span>
                         <span id="win-slider-val-display" class="slider-percent">0 pts</span>
                     </div>
                 </div>
             </div>
 
-            <div class="terms-section" style="margin-top: 10px; margin-bottom: 25px;">
+            <div class="terms-section">
                 <div class="terms-header">Win Status</div>
                 <div class="terms-bar-bg">
                     <div id="winner-status-bar" class="terms-bar-fill-static"></div>
@@ -125,7 +122,7 @@
             <hr style="border: 0; border-top: 1px solid #441111; margin: 20px 0;">
 
             <div class="terms-section">
-                <div class="terms-header"><span id="concede-label-text">Conceding Faction Target</span></div>
+                <div class="terms-header">Conceding Faction Target</div>
                 <div class="terms-bar-bg">
                     <div id="concede-bar" class="terms-bar-fill"></div>
                     <span id="concede-text" class="terms-bar-text">0 / 0</span>
@@ -140,7 +137,7 @@
             </div>
 
             <div id="matchmaking-buffer" class="buffer-display">Calculating matchmaking buffer...</div>
-            <div id="points-required" class="points-display hidden">Calculating points needed...</div>
+            <div id="points-required" class="points-display hidden"></div>
         </div>
     </div>
     <script src="script.js"></script>
