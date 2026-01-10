@@ -79,23 +79,7 @@ async function updateWarClock() {
                 startTime: startTime
             };
 
-            if (!initialDefaultSet) {
-                const mmTime = getNextMatchmakingTuesday();
-                const mmTS = Math.floor(mmTime.getTime() / 1000);
-                const tFinTS = mmTS - (5 * 3600); 
-                const avail = tFinTS - (startTime + 86400);
-                
-                if (avail >= 0) {
-                    const maxIt = Math.floor(avail / 3600) + 1;
-                    const reqLeadScore = Math.ceil(originalTarget - (maxIt * originalTarget * 0.01));
-                    const leadPctNeeded = Math.round((reqLeadScore / originalTarget) * 100);
-                    const concederPct = parseInt(document.getElementById('bracket-slider').value);
-                    const totalWinPct = Math.min(100, concederPct + leadPctNeeded);
-                    document.getElementById('win-bracket-slider').value = totalWinPct;
-                }
-                initialDefaultSet = true;
-            }
-
+            initialDefaultSet = true;
         } else {
             window.currentWarStats = { active: false };
         }
@@ -191,18 +175,31 @@ function renderUI() {
     }
     document.getElementById('details').innerHTML = `<span style="color: #ff8c00; font-weight: bold;">Predicted Finish: ${new Date(finishLineTimestamp * 1000).toUTCString().replace('GMT', 'TCT')}</span>`;
 
+    const mmTime = getNextMatchmakingTuesday();
+    const mmTS = Math.floor(mmTime.getTime() / 1000);
+    const tFinTS_5hr = mmTS - (5 * 3600);
+    const avail_5hr = tFinTS_5hr - (stats.startTime + 86400);
+    
+    let leadNeededFor5Hr = 0;
+    if (avail_5hr >= 0) {
+        const maxIt = Math.floor(avail_5hr / 3600) + 1;
+        leadNeededFor5Hr = Math.ceil(stats.original - (maxIt * stats.original * 0.01));
+    } else {
+        leadNeededFor5Hr = stats.original; // Fallback if 5hr is impossible
+    }
+
     document.getElementById('radio-f1-name').innerText = stats.f1Name;
     document.getElementById('radio-f2-name').innerText = stats.f2Name;
     const winnerVal = document.querySelector('input[name="winner"]:checked').value;
-    const winGoalPct = parseInt(document.getElementById('win-bracket-slider').value);
     const conGoalPct = parseInt(document.getElementById('bracket-slider').value);
-    document.getElementById('win-slider-val-display').innerText = winGoalPct + "%";
     document.getElementById('slider-val-display').innerText = conGoalPct + "%";
-
     const wScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
     const cScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
+    const cTarg = Math.round(stats.original * (conGoalPct / 100));
+    const wTarg = cTarg + leadNeededFor5Hr;
+    const winGoalLabel = document.getElementById('win-slider-val-display');
+    if (winGoalLabel) winGoalLabel.innerText = wTarg.toLocaleString() + " pts";
 
-    const wTarg = Math.round(stats.original * (winGoalPct / 100));
     const wPct = wTarg === 0 ? 100 : Math.min(100, (wScore / wTarg) * 100);
     const wBar = document.getElementById('win-target-bar');
     wBar.style.width = wPct + "%";
@@ -216,15 +213,12 @@ function renderUI() {
         sBar.classList.remove('complete-green'); sBar.classList.add('fail-red'); sText.innerText = "LOSING"; 
     }
 
-    const cTarg = Math.round(stats.original * (conGoalPct / 100));
     const cPct = cTarg === 0 ? 100 : Math.min(100, (cScore / cTarg) * 100);
     const cBar = document.getElementById('concede-bar');
     cBar.style.width = cPct + "%";
     document.getElementById('concede-text').innerText = `${cScore.toLocaleString()} / ${cTarg.toLocaleString()} (${Math.round(cPct)}%)`;
     if (cScore >= cTarg && cTarg > 0) cBar.classList.add('complete-green'); else cBar.classList.remove('complete-green');
 
-    const mmTime = getNextMatchmakingTuesday();
-    const mmTS = Math.floor(mmTime.getTime() / 1000);
     const bSec = mmTS - finishLineTimestamp;
     const bHrs = (bSec / 3600).toFixed(1);
     const bDiv = document.getElementById('matchmaking-buffer');
@@ -233,7 +227,7 @@ function renderUI() {
 
     if (bSec < 0 || bHrs < 5) {
         pDiv.classList.remove('hidden');
-        const sliderLead = Math.max(0, Math.round(stats.original * ((winGoalPct - conGoalPct) / 100)));
+        const plannedLead = wTarg - cTarg;
 
         const getRowData = (hours) => {
             const tFinTS = mmTS - (hours * 3600);
@@ -242,8 +236,8 @@ function renderUI() {
             
             const maxIt = Math.floor(avail / 3600) + 1;
             const xxx = Math.ceil(stats.original - (maxIt * stats.original * 0.01));
-            const statusColor = sliderLead >= xxx ? 'buffer-safe' : 'buffer-danger';
-            const statusWord = sliderLead >= xxx ? 'YES' : 'NO';
+            const statusColor = plannedLead >= xxx ? 'buffer-safe' : 'buffer-danger';
+            const statusWord = plannedLead >= xxx ? 'YES' : 'NO';
 
             return `<tr>
                 <td>${hours} Hour</td>
@@ -264,7 +258,7 @@ function renderUI() {
                 </tbody>
             </table>
             <div style="text-align:left; font-size:0.8em; margin-top:8px; color:#888;">
-                Your planned lead (based on sliders): <span class="points-val">${sliderLead.toLocaleString()}</span>
+                Your planned lead (Auto-calculated): <span class="points-val">${plannedLead.toLocaleString()}</span>
             </div>`;
     } else { pDiv.classList.add('hidden'); }
 
