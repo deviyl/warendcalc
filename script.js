@@ -207,11 +207,35 @@ function renderUI() {
     document.getElementById('concede-text').innerText = `${cScore.toLocaleString()} / ${cTarg.toLocaleString()} (${Math.round(cBarPct)}%)`;
     cScore >= cTarg && cTarg > 0 ? cBar.classList.add('complete-green') : cBar.classList.remove('complete-green');
 
+    const goalLead = Math.abs(wTarg - cTarg);
+    const goalTotalIterations = Math.ceil((stats.original - goalLead) / (stats.original * 0.01));
+    const goalFinishTimestamp = stats.startTime + 86400 + ((goalTotalIterations - 1) * 3600);
+    
     const bSec = mmTS - finishLineTimestamp;
     const bHrs = (bSec / 3600).toFixed(1);
+    
+    const goalBSec = mmTS - goalFinishTimestamp;
+    const goalBHrs = (goalBSec / 3600).toFixed(1);
+
     const bDiv = document.getElementById('matchmaking-buffer');
     const pDiv = document.getElementById('points-required');
     const dStr = mmTime.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+
+    let statusHTML = `<div style="margin-bottom:15px; line-height: 1.6;">`;
+    if (bSec < 0) {
+        statusHTML += `At the <u>Current Scores</u>, predicted finish is AFTER matchmaking on:<br>Tuesday (${dStr}) at 12:00 TCT<br>`;
+    } else {
+        statusHTML += `At the <u>Current Scores</u>, war ends <span class="${bHrs >= selectedDeadlineHours ? 'buffer-safe' : 'buffer-danger'}">${bHrs} hours</span> before matchmaking.<br>`;
+    }
+
+    if (goalBSec < 0) {
+        statusHTML += `If the <u>Current Goals</u> are met, predicted finish is AFTER matchmaking.`;
+    } else {
+        statusHTML += `If the <u>Current Goals</u> are met, war ends <span class="${goalBHrs >= selectedDeadlineHours ? 'buffer-safe' : 'buffer-danger'}">${goalBHrs} hours</span> before matchmaking.`;
+    }
+    statusHTML += `</div>`;
+    
+    bDiv.innerHTML = statusHTML;
 
     pDiv.classList.remove('hidden');
     const getRow = (hrs) => `<tr><td>${hrs} Hour${hrs > 1 ? 's' : ''}</td><td><span class="points-val">${calculateLeadForHours(hrs).toLocaleString()}</span></td><td><input type="radio" name="deadline-pref" value="${hrs}" ${selectedDeadlineHours === hrs ? 'checked' : ''} onchange="selectedDeadlineHours = parseInt(this.value); renderUI();"></td></tr>`;
@@ -221,7 +245,4 @@ function renderUI() {
             <thead><tr><th>Before MM</th><th>Lead Needed</th><th>Set Goal</th></tr></thead>
             <tbody>${getRow(1)}${getRow(5)}${getRow(12)}</tbody>
         </table>`;
-
-    if (bSec < 0) { bDiv.innerHTML = `<span class="buffer-danger">Predicted finish is AFTER matchmaking on:<br>Tuesday (${dStr}) at 12:00 TCT</span>`; }
-    else { bDiv.innerHTML = `End <span class="${bHrs >= selectedDeadlineHours ? 'buffer-safe' : 'buffer-danger'}">${bHrs} hours</span> before matchmaking on Tuesday (${dStr}) at 12:00 TCT`; }
 }
