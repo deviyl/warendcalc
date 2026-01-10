@@ -10,7 +10,6 @@
     <div class="main-wrapper">
         <div class="container">
             <h1 id="header-title">Ranked War End Time</h1>
-            
             <div id="setup-area">
                 <input type="text" id="api-key" placeholder="Enter API Key">
                 <button onclick="startTracking()">Start Tracking</button>
@@ -18,16 +17,13 @@
 
             <div id="dashboard" class="hidden">
                 <div id="no-war-message" class="hidden">No Active War</div>
-
                 <div id="active-war-elements">
                     <div id="start-timer-container" class="hidden">
                         <div style="font-size: 0.9em; color: #00ff00; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;">War Starts In:</div>
                         <div class="timer timer-start" id="start-countdown">00:00:00</div>
                     </div>
-
                     <div class="timer" id="countdown">00:00:00</div>
                     <div id="orig-target-display" class="original-target-text">Original Target: 0</div>
-                    
                     <div class="stats-grid">
                         <div class="faction-card">
                             <div id="f1-name" class="faction-name">Faction 1</div>
@@ -38,28 +34,14 @@
                             <div id="f2-score" class="score">0</div>
                         </div>
                     </div>
-
                     <div class="tow-wrapper">
-                        <div class="tow-labels-top">
-                            <span id="label-f1">F1</span>
-                            <span id="label-f2">F2</span>
-                        </div>
+                        <div class="tow-labels-top"><span id="label-f1">F1</span><span id="label-f2">F2</span></div>
                         <div class="tow-container">
                             <div class="tow-center-line"></div>
-                            <div class="tow-side tow-left">
-                                <div id="fill-left" class="fill-left"></div>
-                                <div id="val-left" class="tow-value"></div>
-                            </div>
-                            <div class="tow-side tow-right">
-                                <div id="val-right" class="tow-value"></div>
-                                <div id="fill-right" class="fill-right"></div>
-                            </div>
+                            <div class="tow-side tow-left"><div id="fill-left" class="fill-left"></div><div id="val-left" class="tow-value"></div></div>
+                            <div class="tow-side tow-right"><div id="val-right" class="tow-value"></div><div id="fill-right" class="fill-right"></div></div>
                         </div>
-                        <div class="tow-labels-bottom">
-                            <span id="target-left">0</span>
-                            <span class="center-zero">0</span>
-                            <span id="target-right">0</span>
-                        </div>
+                        <div class="tow-labels-bottom"><span id="target-left">0</span><span class="center-zero">0</span><span id="target-right">0</span></div>
                     </div>
                     <div id="details"></div>
                 </div>
@@ -77,70 +59,43 @@
 
         <div id="last-war-container" class="container hidden">
             <h2 class="terms-title">Previous War Results</h2>
-            <div id="last-war-content">
-                <div class="stats-grid">
-                    <div class="faction-card">
-                        <div id="prev-f1-name" class="faction-name">Loading...</div>
-                        <div id="prev-f1-score" class="score">0</div>
-                    </div>
-                    <div class="faction-card">
-                        <div id="prev-f2-name" class="faction-name">Loading...</div>
-                        <div id="prev-f2-score" class="score">0</div>
-                    </div>
+            <div class="stats-grid">
+                <div class="faction-card">
+                    <div id="prev-f1-name" class="faction-name">Loading...</div>
+                    <div id="prev-f1-score" class="score">0</div>
                 </div>
-                <div id="prev-war-details" style="font-size: 0.9em; color: #ff8c00; font-weight: bold;"></div>
+                <div class="faction-card">
+                    <div id="prev-f2-name" class="faction-name">Loading...</div>
+                    <div id="prev-f2-score" class="score">0</div>
+                </div>
             </div>
+            <div id="prev-war-details" style="font-size: 0.85em; color: #ff8c00; font-weight: bold;"></div>
         </div>
 
         <div id="terms-container" class="container hidden">
             <h2 class="terms-title">War Terms Coordination</h2>
             <div class="winner-selection">
                 <span>Select Winner:</span>
-                <label><input type="radio" name="winner" value="f1" checked onchange="updateWarClock()"> <span id="radio-f1-name">F1</span></label>
-                <label><input type="radio" name="winner" value="f2" onchange="updateWarClock()"> <span id="radio-f2-name">F2</span></label>
+                <label><input type="radio" name="winner" value="f1" checked onchange="renderUI()"> <span id="radio-f1-name">F1</span></label>
+                <label><input type="radio" name="winner" value="f2" onchange="renderUI()"> <span id="radio-f2-name">F2</span></label>
             </div>
-
             <div class="terms-section">
-                <div class="terms-header"><span id="win-target-label-text">Winning Faction Target</span></div>
-                <div class="terms-bar-bg">
-                    <div id="win-target-bar" class="terms-bar-fill"></div>
-                    <span id="win-target-text" class="terms-bar-text">0 / 0</span>
-                </div>
-                <div class="slider-wrapper">
-                    <div class="slider-label-row">
-                        <span>Required Win Score:</span>
-                        <span id="win-slider-val-display" class="slider-percent">0 pts</span>
-                    </div>
-                </div>
+                <div class="terms-header">Winning Faction Target</div>
+                <div class="terms-bar-bg"><div id="win-target-bar" class="terms-bar-fill"></div><span id="win-target-text" class="terms-bar-text">0 / 0</span></div>
+                <div class="slider-wrapper"><div class="slider-label-row"><span>Required Win Score:</span><span id="win-slider-val-display" class="slider-percent">0 pts</span></div></div>
             </div>
-
             <div class="terms-section">
                 <div class="terms-header">Win Status</div>
-                <div class="terms-bar-bg">
-                    <div id="winner-status-bar" class="terms-bar-fill-static"></div>
-                    <span id="winner-status-text" class="terms-bar-text">Awaiting Data</span>
-                </div>
+                <div class="terms-bar-bg"><div id="winner-status-bar" class="terms-bar-fill-static"></div><span id="winner-status-text" class="terms-bar-text">Awaiting Data</span></div>
             </div>
-
             <hr style="border: 0; border-top: 1px solid #441111; margin: 20px 0;">
-
             <div class="terms-section">
-                <div class="terms-header"><span id="concede-label-text">Conceding Faction Target</span></div>
-                <div class="terms-bar-bg">
-                    <div id="concede-bar" class="terms-bar-fill"></div>
-                    <span id="concede-text" class="terms-bar-text">0 / 0</span>
-                </div>
-                <div class="slider-wrapper">
-                    <div class="slider-label-row">
-                        <span>Conceder's Score Goal:</span>
-                        <span id="slider-val-display" class="slider-percent">30%</span>
-                    </div>
-                    <input type="range" id="bracket-slider" min="0" max="100" value="30" step="1" oninput="renderUI()">
-                </div>
+                <div class="terms-header">Conceding Faction Target</div>
+                <div class="terms-bar-bg"><div id="concede-bar" class="terms-bar-fill"></div><span id="concede-text" class="terms-bar-text">0 / 0</span></div>
+                <div class="slider-wrapper"><div class="slider-label-row"><span>Conceder's Score Goal:</span><span id="slider-val-display" class="slider-percent">30%</span></div><input type="range" id="bracket-slider" min="0" max="100" value="30" step="1" oninput="renderUI()"></div>
             </div>
-
             <div id="matchmaking-buffer" class="buffer-display">Calculating matchmaking buffer...</div>
-            <div id="points-required" class="points-display hidden">Calculating points needed...</div>
+            <div id="points-required" class="points-display hidden"></div>
         </div>
     </div>
     <script src="script.js"></script>
