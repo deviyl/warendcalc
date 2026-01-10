@@ -87,9 +87,21 @@ button { padding: 12px 20px; border-radius: 4px; border: none; background: #ff45
 .tow-labels-bottom { display: flex; justify-content: space-between; font-size: 0.7em; color: #cca3a3; margin-top: 8px; position: relative; }
 .center-zero { position: absolute; left: 50%; transform: translateX(-50%); color: #fff; font-weight: bold; }
 
-.history-toggle-area { position: absolute; bottom: 8px; left: 12px; font-size: 0.7em; color: #888; }
-.terms-toggle-area { position: absolute; bottom: 8px; right: 12px; font-size: 0.7em; color: #888; }
-#details { margin-top: 20px; font-size: 0.9em; }
+#details { margin-top: 20px; }
+.predicted-finish { color: #ff8c00; font-weight: bold; font-size: 0.9em; margin-bottom: 15px; }
+
+.container-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #2a0a0a;
+}
+
+.history-toggle-area, .terms-toggle-area { font-size: 0.7em; color: #888; }
 
 .terms-title { color: #ff4500; font-size: 1em; margin-bottom: 15px; text-transform: uppercase; border-bottom: 1px solid #441111; padding-bottom: 10px; }
 .winner-selection { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 0.85em; color: #fff; }
@@ -101,7 +113,7 @@ button { padding: 12px 20px; border-radius: 4px; border: none; background: #ff45
 .slider-label-row { display: flex; justify-content: space-between; font-size: 0.75em; color: #cca3a3; margin-bottom: 8px; font-weight: bold; }
 .slider-percent { color: #ff8c00; font-size: 0.9em; }
 
-input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #441111; border-radius: 5px; outline: none; }
+input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #441111; border-radius: 50px; outline: none; }
 input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: #ff4500; border-radius: 50%; cursor: pointer; }
 
 .terms-bar-bg { width: 100%; height: 30px; background: #000; border: 1px solid #441111; border-radius: 4px; position: relative; overflow: hidden; }
