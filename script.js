@@ -5,6 +5,7 @@ let finishLineTimestamp = 0;
 let previousWarData = null;
 window.currentWarStats = null;
 let initialDefaultSet = false; 
+let selectedDeadlineHours = 5; // Track user choice for auto-goal calculation
 
 function toggleTerms() {
     const isChecked = document.getElementById('terms-checkbox').checked;
@@ -175,28 +176,33 @@ function renderUI() {
     }
     document.getElementById('details').innerHTML = `<span style="color: #ff8c00; font-weight: bold;">Predicted Finish: ${new Date(finishLineTimestamp * 1000).toUTCString().replace('GMT', 'TCT')}</span>`;
 
+    // Calculate lead required for the currently selected deadline
     const mmTime = getNextMatchmakingTuesday();
     const mmTS = Math.floor(mmTime.getTime() / 1000);
-    const tFinTS_5hr = mmTS - (5 * 3600);
-    const avail_5hr = tFinTS_5hr - (stats.startTime + 86400);
     
-    let leadNeededFor5Hr = 0;
-    if (avail_5hr >= 0) {
-        const maxIt = Math.floor(avail_5hr / 3600) + 1;
-        leadNeededFor5Hr = Math.ceil(stats.original - (maxIt * stats.original * 0.01));
-    } else {
-        leadNeededFor5Hr = stats.original; // Fallback if 5hr is impossible
-    }
+    const calculateLeadForHours = (hrs) => {
+        const tFinTS = mmTS - (hrs * 3600);
+        const avail = tFinTS - (stats.startTime + 86400);
+        if (avail < 0) return stats.original; 
+        const maxIt = Math.floor(avail / 3600) + 1;
+        return Math.ceil(stats.original - (maxIt * stats.original * 0.01));
+    };
+
+    const leadNeededForSelected = calculateLeadForHours(selectedDeadlineHours);
 
     document.getElementById('radio-f1-name').innerText = stats.f1Name;
     document.getElementById('radio-f2-name').innerText = stats.f2Name;
     const winnerVal = document.querySelector('input[name="winner"]:checked').value;
     const conGoalPct = parseInt(document.getElementById('bracket-slider').value);
     document.getElementById('slider-val-display').innerText = conGoalPct + "%";
+    
     const wScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
     const cScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
+    
     const cTarg = Math.round(stats.original * (conGoalPct / 100));
-    const wTarg = cTarg + leadNeededFor5Hr;
+    // Automatic Winning Target Calculation: Loser Target + Lead Needed for the selected radio button
+    const wTarg = cTarg + leadNeededForSelected;
+
     const winGoalLabel = document.getElementById('win-slider-val-display');
     if (winGoalLabel) winGoalLabel.innerText = wTarg.toLocaleString() + " pts";
 
@@ -225,43 +231,41 @@ function renderUI() {
     const pDiv = document.getElementById('points-required');
     const dStr = mmTime.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
 
-    if (bSec < 0 || bHrs < 5) {
-        pDiv.classList.remove('hidden');
-        const plannedLead = wTarg - cTarg;
+    // Render the Deadline Selection Table with Radios
+    pDiv.classList.remove('hidden');
+    const plannedLead = wTarg - cTarg;
 
-        const getRowData = (hours) => {
-            const tFinTS = mmTS - (hours * 3600);
-            const avail = tFinTS - (stats.startTime + 86400);
-            if (avail < 0) return `<tr><td>${hours} Hour</td><td colspan="2" class="buffer-danger">Impossible - deadline too early</td></tr>`;
-            
-            const maxIt = Math.floor(avail / 3600) + 1;
-            const xxx = Math.ceil(stats.original - (maxIt * stats.original * 0.01));
-            const statusColor = plannedLead >= xxx ? 'buffer-safe' : 'buffer-danger';
-            const statusWord = plannedLead >= xxx ? 'YES' : 'NO';
+    const getRowData = (hours) => {
+        const leadNeeded = calculateLeadForHours(hours);
+        const isChecked = selectedDeadlineHours === hours ? 'checked' : '';
+        const avail = (mmTS - (hours * 3600)) - (stats.startTime + 86400);
+        
+        if (avail < 0) {
+            return `<tr><td>${hours} Hour</td><td colspan="2" class="buffer-danger">Impossible</td></tr>`;
+        }
+        
+        return `<tr>
+            <td>${hours} Hour</td>
+            <td><span class="points-val">${leadNeeded.toLocaleString()}</span></td>
+            <td><input type="radio" name="deadline-pref" value="${hours}" ${isChecked} onchange="selectedDeadlineHours = parseInt(this.value); renderUI();"></td>
+        </tr>`;
+    };
 
-            return `<tr>
-                <td>${hours} Hour</td>
-                <td><span class="points-val">${xxx.toLocaleString()}</span></td>
-                <td class="status-cell ${statusColor}">${statusWord}</td>
-            </tr>`;
-        };
+    pDiv.innerHTML = `
+        <div style="text-align:left; margin-bottom:5px; font-weight:bold; color:#cca3a3;">Select Target Buffer:</div>
+        <table class="deadline-table">
+            <thead>
+                <tr><th>Before MM</th><th>Lead Needed</th><th>Set Goal</th></tr>
+            </thead>
+            <tbody>
+                ${getRowData(1)}
+                ${getRowData(5)}
+            </tbody>
+        </table>
+        <div style="text-align:left; font-size:0.8em; margin-top:8px; color:#888;">
+            Target Lead: <span class="points-val">${plannedLead.toLocaleString()}</span>
+        </div>`;
 
-        pDiv.innerHTML = `
-            <div style="text-align:left; margin-bottom:5px; font-weight:bold; color:#cca3a3;">Lead Required to end before next Matchmaking:</div>
-            <table class="deadline-table">
-                <thead>
-                    <tr><th>Hours Before</th><th>Lead Needed</th><th>Goal Met?</th></tr>
-                </thead>
-                <tbody>
-                    ${getRowData(1)}
-                    ${getRowData(5)}
-                </tbody>
-            </table>
-            <div style="text-align:left; font-size:0.8em; margin-top:8px; color:#888;">
-                Your planned lead (Auto-calculated): <span class="points-val">${plannedLead.toLocaleString()}</span>
-            </div>`;
-    } else { pDiv.classList.add('hidden'); }
-
-    if (bSec < 0) { bDiv.innerHTML = `<span class="buffer-danger">Predicted finish is AFTER matchmaking on:<br>Tuesday (${dStr}) at 12:00 TCT<br>(this is based on current scores, not sliders)</span>`; }
-    else { bDiv.innerHTML = `End <span class="${bHrs >= 5 ? 'buffer-safe' : 'buffer-danger'}">${bHrs} hours</span> before matchmaking on Tuesday (${dStr}) at 12:00 TCT`; }
+    if (bSec < 0) { bDiv.innerHTML = `<span class="buffer-danger">Predicted finish is AFTER matchmaking on:<br>Tuesday (${dStr}) at 12:00 TCT</span>`; }
+    else { bDiv.innerHTML = `End <span class="${bHrs >= selectedDeadlineHours ? 'buffer-safe' : 'buffer-danger'}">${bHrs} hours</span> before matchmaking on Tuesday (${dStr}) at 12:00 TCT`; }
 }
