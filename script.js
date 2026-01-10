@@ -176,13 +176,14 @@ function renderUI() {
     }
     document.getElementById('details').innerHTML = `<span style="color: #ff8c00; font-weight: bold;">Predicted Finish: ${new Date(finishLineTimestamp * 1000).toUTCString().replace('GMT', 'TCT')}</span>`;
 
-    // Calculate lead required for selection
     const mmTime = getNextMatchmakingTuesday();
     const mmTS = Math.floor(mmTime.getTime() / 1000);
     
     const calculateLeadForHours = (hrs) => {
         const tFinTS = mmTS - (hrs * 3600);
         const avail = tFinTS - (stats.startTime + 86400);
+        // Basic clamp to original target if math goes negative (unlikely with your wars)
+        if (avail < 0) return stats.original;
         const maxIt = Math.floor(avail / 3600) + 1;
         return Math.ceil(stats.original - (maxIt * stats.original * 0.01));
     };
@@ -236,7 +237,7 @@ function renderUI() {
         const leadNeeded = calculateLeadForHours(hours);
         const isChecked = selectedDeadlineHours === hours ? 'checked' : '';
         return `<tr>
-            <td>${hours} Hour</td>
+            <td>${hours} Hour${hours > 1 ? 's' : ''}</td>
             <td><span class="points-val">${leadNeeded.toLocaleString()}</span></td>
             <td><input type="radio" name="deadline-pref" value="${hours}" ${isChecked} onchange="selectedDeadlineHours = parseInt(this.value); renderUI();"></td>
         </tr>`;
@@ -251,6 +252,7 @@ function renderUI() {
             <tbody>
                 ${getRowData(1)}
                 ${getRowData(5)}
+                ${getRowData(12)}
             </tbody>
         </table>
         <div style="text-align:left; font-size:0.8em; margin-top:8px; color:#888;">
