@@ -5,7 +5,7 @@ let finishLineTimestamp = 0;
 let previousWarData = null;
 window.currentWarStats = null;
 let initialDefaultSet = false; 
-let selectedDeadlineHours = 5; // Track user choice for auto-goal calculation
+let selectedDeadlineHours = 5; // Default choice
 
 function toggleTerms() {
     const isChecked = document.getElementById('terms-checkbox').checked;
@@ -176,14 +176,13 @@ function renderUI() {
     }
     document.getElementById('details').innerHTML = `<span style="color: #ff8c00; font-weight: bold;">Predicted Finish: ${new Date(finishLineTimestamp * 1000).toUTCString().replace('GMT', 'TCT')}</span>`;
 
-    // Calculate lead required for the currently selected deadline
+    // Calculate lead required for selection
     const mmTime = getNextMatchmakingTuesday();
     const mmTS = Math.floor(mmTime.getTime() / 1000);
     
     const calculateLeadForHours = (hrs) => {
         const tFinTS = mmTS - (hrs * 3600);
         const avail = tFinTS - (stats.startTime + 86400);
-        if (avail < 0) return stats.original; 
         const maxIt = Math.floor(avail / 3600) + 1;
         return Math.ceil(stats.original - (maxIt * stats.original * 0.01));
     };
@@ -200,7 +199,6 @@ function renderUI() {
     const cScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
     
     const cTarg = Math.round(stats.original * (conGoalPct / 100));
-    // Automatic Winning Target Calculation: Loser Target + Lead Needed for the selected radio button
     const wTarg = cTarg + leadNeededForSelected;
 
     const winGoalLabel = document.getElementById('win-slider-val-display');
@@ -231,19 +229,12 @@ function renderUI() {
     const pDiv = document.getElementById('points-required');
     const dStr = mmTime.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
 
-    // Render the Deadline Selection Table with Radios
     pDiv.classList.remove('hidden');
     const plannedLead = wTarg - cTarg;
 
     const getRowData = (hours) => {
         const leadNeeded = calculateLeadForHours(hours);
         const isChecked = selectedDeadlineHours === hours ? 'checked' : '';
-        const avail = (mmTS - (hours * 3600)) - (stats.startTime + 86400);
-        
-        if (avail < 0) {
-            return `<tr><td>${hours} Hour</td><td colspan="2" class="buffer-danger">Impossible</td></tr>`;
-        }
-        
         return `<tr>
             <td>${hours} Hour</td>
             <td><span class="points-val">${leadNeeded.toLocaleString()}</span></td>
