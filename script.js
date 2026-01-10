@@ -165,7 +165,7 @@ function renderUI() {
     if (stats.f1Score > stats.f2Score) { fillL.style.width = bPct + "%"; valL.innerText = stats.lead.toLocaleString(); }
     else if (stats.f2Score > stats.f1Score) { fillR.style.width = bPct + "%"; valR.innerText = stats.lead.toLocaleString(); }
     
-    document.getElementById('details').innerHTML = `<span style="color: #ff8c00; font-weight: bold;">Predicted Finish: ${new Date(finishLineTimestamp * 1000).toUTCString().replace('GMT', 'TCT')}</span>`;
+    document.getElementById('details').innerHTML = `<div class="predicted-finish">Predicted Finish: ${new Date(finishLineTimestamp * 1000).toUTCString().replace('GMT', 'TCT')}</div>`;
 
     const calculateLeadForHours = (hrs) => {
         const tFinTS = mmTS - (hrs * 3600);
