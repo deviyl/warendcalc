@@ -212,10 +212,10 @@ function renderUI() {
     const goalFinishTimestamp = stats.startTime + 86400 + ((goalTotalIterations - 1) * 3600);
     
     const bSec = mmTS - finishLineTimestamp;
-    const bHrs = (bSec / 3600);
+    const bHrs = (bSec / 3600).toFixed(1);
     
     const goalBSec = mmTS - goalFinishTimestamp;
-    const goalBHrs = (goalBSec / 3600);
+    const goalBHrs = (goalBSec / 3600).toFixed(1);
 
     const bDiv = document.getElementById('matchmaking-buffer');
     const pDiv = document.getElementById('points-required');
