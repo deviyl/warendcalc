@@ -207,7 +207,7 @@ function renderUI() {
     document.getElementById('concede-text').innerText = `${cScore.toLocaleString()} / ${cTarg.toLocaleString()} (${Math.round(cBarPct)}%)`;
     cScore >= cTarg && cTarg > 0 ? cBar.classList.add('complete-green') : cBar.classList.remove('complete-green');
 
-    const goalLead = Math.abs(wTarg - cTarg);
+    const goalLead = Math.abs(wTarg - Math.max(cTarg, cScore));
     const goalTotalIterations = Math.ceil((stats.original - goalLead) / (stats.original * 0.01));
     const goalFinishTimestamp = stats.startTime + 86400 + ((goalTotalIterations - 1) * 3600);
     
