@@ -367,20 +367,20 @@ input[type="range"] {
 }
 
 .credit-footer {
-    margin-top: 30px;
-    padding: 15px;
-    font-size: 0.75em;
-    color: #666;
-    text-align: center;
+    position: fixed;
+    bottom: 10px;
+    right: 15px;
+    font-size: 0.65em;
+    color: #333;
+    text-align: right;
 }
 
 .credit-footer a {
-    color: #888;
+    color: #444;
     text-decoration: none;
     transition: color 0.3s;
 }
 
 .credit-footer a:hover {
     color: #ff8c00;
-    text-decoration: underline;
 }
