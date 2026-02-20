@@ -186,7 +186,7 @@ function renderUI() {
     const wScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
     const cScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
     const cTarg = Math.round(stats.original * (conGoalPct / 100));
-    const wTarg = cTarg + leadNeeded;
+    const wTarg = Math.max(cTarg, cScore) + leadNeeded;
 
     const winGoalLabel = document.getElementById('win-slider-val-display');
     if (winGoalLabel) winGoalLabel.innerText = wTarg.toLocaleString() + " pts";
