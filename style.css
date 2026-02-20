@@ -365,3 +365,22 @@ input[type="range"] {
     color: #fff;
     font-weight: bold;
 }
+
+.credit-footer {
+    margin-top: 30px;
+    padding: 15px;
+    font-size: 0.75em;
+    color: #666;
+    text-align: center;
+}
+
+.credit-footer a {
+    color: #888;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.credit-footer a:hover {
+    color: #ff8c00;
+    text-decoration: underline;
+}
