@@ -10,7 +10,10 @@
 <body>
     <div class="main-wrapper">
         <div class="container">
-            <h1 id="header-title">Ranked War End Time</h1>
+            <div class="header-wrapper">
+                <h1 id="header-title">Ranked War End Time</h1>
+                <button id="logout-btn" class="logout-btn" title="exit and clear api key" onclick="logoutUser()">✕</button>
+            </div>
             <div id="setup-area">
                 <input type="text" id="api-key" placeholder="Enter Public API Key">
                 <button onclick="startTracking()">Start Tracking</button>
@@ -99,10 +102,10 @@
             <div id="points-required" class="points-display hidden"></div>
         </div>
     </div>
-    <script src="script.js"></script>   
+    <script src="script.js"></script>
     <script>
         window.addEventListener('load', loadStoredApiKey);
-    </script>  
+    </script>   
     <footer class="credit-footer">
         War calculator written and maintained by <a href="https://www.torn.com/profiles.php?XID=3722358" target="_blank">Deviyl[3722358]</a>
         <br>
