@@ -89,7 +89,7 @@ async function startTracking() {
         const data = await response.json();
         
         if (data.error) {
-            alert("Invalid API key. Please check and try again.");
+            alert("Invalid API key..");
             document.getElementById('api-key').value = "";
             deleteCookie(COOKIE_NAME);
             return;
