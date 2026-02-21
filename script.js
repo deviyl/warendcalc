@@ -34,10 +34,14 @@ function deleteCookie(name) {
 
 function loadStoredApiKey() {
     const storedKey = getCookie(COOKIE_NAME);
+    const logoutBtn = document.getElementById('logout-btn');
     if (storedKey && storedKey.length >= 16) {
         document.getElementById('api-key').value = storedKey;
         currentApiKey = storedKey;
+        logoutBtn.classList.remove('hidden');
         startTracking();
+    } else {
+        logoutBtn.classList.add('hidden');
     }
 }
 
@@ -47,6 +51,7 @@ function logoutUser() {
     document.getElementById('setup-area').classList.remove('hidden');
     document.getElementById('dashboard').classList.add('hidden');
     document.getElementById('api-key').value = "";
+    document.getElementById('logout-btn').classList.add('hidden');
     clearInterval(apiInterval);
     clearInterval(tickerInterval);
 }
@@ -94,6 +99,7 @@ async function startTracking() {
         setCookie(COOKIE_NAME, keyInput);
         document.getElementById('setup-area').classList.add('hidden');
         document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('logout-btn').classList.remove('hidden');
         
         await updateWarClock();
         apiInterval = setInterval(updateWarClock, 30000);
