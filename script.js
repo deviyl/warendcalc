@@ -7,6 +7,40 @@ let selectedDeadlineHours = 5;
 let initialDefaultSet = false;
 window.currentWarStats = null;
 
+const COOKIE_NAME = "tornapikey";
+
+function setCookie(name, value, days = 365) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + date.toUTCString();
+    document.cookie = name + "=" + value + ";" + expires + ";path=/";
+}
+
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.indexOf(nameEQ) === 0) {
+            return cookie.substring(nameEQ.length);
+        }
+    }
+    return null;
+}
+
+function deleteCookie(name) {
+    setCookie(name, "", -1);
+}
+
+function loadStoredApiKey() {
+    const storedKey = getCookie(COOKIE_NAME);
+    if (storedKey && storedKey.length >= 16) {
+        document.getElementById('api-key').value = storedKey;
+        currentApiKey = storedKey;
+        startTracking();
+    }
+}
+
 function toggleTerms() {
     const isChecked = document.getElementById('terms-checkbox').checked;
     const termsContainer = document.getElementById('terms-container');
@@ -34,13 +68,30 @@ async function startTracking() {
         alert("Please enter a valid Torn API key.");
         return;
     }
-    currentApiKey = keyInput;
-    document.getElementById('setup-area').classList.add('hidden');
-    document.getElementById('dashboard').classList.remove('hidden');
     
-    await updateWarClock();
-    apiInterval = setInterval(updateWarClock, 30000);
-    tickerInterval = setInterval(renderUI, 1000);
+    try {
+        const response = await fetch(`https://api.torn.com/faction/?selections=rankedwars&key=${keyInput}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            alert("Invalid API key. Please check and try again.");
+            document.getElementById('api-key').value = "";
+            deleteCookie(COOKIE_NAME);
+            return;
+        }
+        
+        currentApiKey = keyInput;
+        setCookie(COOKIE_NAME, keyInput);
+        document.getElementById('setup-area').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        
+        await updateWarClock();
+        apiInterval = setInterval(updateWarClock, 30000);
+        tickerInterval = setInterval(renderUI, 1000);
+    } catch (e) {
+        alert("Error validating API key. Please try again.");
+        console.error(e);
+    }
 }
 
 async function updateWarClock() {
@@ -48,6 +99,18 @@ async function updateWarClock() {
     try {
         const response = await fetch(`https://api.torn.com/faction/?selections=rankedwars&key=${currentApiKey}`);
         const data = await response.json();
+        
+        if (data.error) {
+            alert("API key is no longer valid. Please enter a new key.");
+            currentApiKey = "";
+            deleteCookie(COOKIE_NAME);
+            document.getElementById('setup-area').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+            clearInterval(apiInterval);
+            clearInterval(tickerInterval);
+            return;
+        }
+        
         const sortedIds = Object.keys(data.rankedwars).sort((a, b) => b - a);
         const warData = data.rankedwars[sortedIds[0]];
         const isLiveOrScheduled = warData.war.end === 0;
