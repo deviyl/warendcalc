@@ -41,6 +41,16 @@ function loadStoredApiKey() {
     }
 }
 
+function logoutUser() {
+    currentApiKey = "";
+    deleteCookie(COOKIE_NAME);
+    document.getElementById('setup-area').classList.remove('hidden');
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('api-key').value = "";
+    clearInterval(apiInterval);
+    clearInterval(tickerInterval);
+}
+
 function toggleTerms() {
     const isChecked = document.getElementById('terms-checkbox').checked;
     const termsContainer = document.getElementById('terms-container');
