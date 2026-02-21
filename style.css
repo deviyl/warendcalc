@@ -35,6 +35,32 @@ h1 {
     text-transform: uppercase;
 }
 
+.header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+.logout-btn {
+    background: none;
+    border: none;
+    color: #ff4500;
+    font-size: 1.8em;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s;
+}
+
+.logout-btn:hover {
+    color: #ff6b35;
+}
+
 .hidden {
     display: none !important;
 }
