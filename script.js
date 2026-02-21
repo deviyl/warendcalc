@@ -105,7 +105,7 @@ async function startTracking() {
         apiInterval = setInterval(updateWarClock, 30000);
         tickerInterval = setInterval(renderUI, 1000);
     } catch (e) {
-        alert("Error validating API key. Please try again.");
+        alert("Invalid API key..");
         console.error(e);
     }
 }
