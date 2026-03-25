@@ -7,7 +7,7 @@ let selectedDeadlineHours = 5;
 let initialDefaultSet = false;
 window.currentWarStats = null;
 
-const COOKIE_NAME = "tornapikey";
+const COOKIE_NAME = "tornApiKey";
 
 function setCookie(name, value, days = 365) {
     const date = new Date();
