@@ -1,0 +1,443 @@
+let apiInterval;
+let tickerInterval;
+let currentApiKey = "";
+let finishLineTimestamp = 0;
+let previousWarData = null;
+let selectedDeadlineHours = 5;
+let initialDefaultSet = false;
+window.currentWarStats = null;
+
+const COOKIE_NAME = "tornApiKey";
+const REWARDS_CACHE_PREFIX = "tornWarRewards_";
+
+function setCookie(name, value, days = 365) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + date.toUTCString();
+    document.cookie = name + "=" + value + ";" + expires + ";path=/";
+}
+
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.indexOf(nameEQ) === 0) {
+            return cookie.substring(nameEQ.length);
+        }
+    }
+    return null;
+}
+
+function deleteCookie(name) {
+    setCookie(name, "", -1);
+}
+
+function loadStoredApiKey() {
+    const storedKey = getCookie(COOKIE_NAME);
+    const logoutBtn = document.getElementById('logout-btn');
+    if (storedKey && storedKey.length >= 16) {
+        document.getElementById('api-key').value = storedKey;
+        currentApiKey = storedKey;
+        logoutBtn.classList.remove('hidden');
+        startTracking();
+    } else {
+        logoutBtn.classList.add('hidden');
+    }
+}
+
+function logoutUser() {
+    currentApiKey = "";
+    deleteCookie(COOKIE_NAME);
+    document.getElementById('setup-area').classList.remove('hidden');
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('api-key').value = "";
+    document.getElementById('logout-btn').classList.add('hidden');
+    document.getElementById('last-war-checkbox').checked = false;
+    document.getElementById('last-war-container').classList.add('hidden');
+    document.getElementById('rewards-container').classList.add('hidden');
+    clearInterval(apiInterval);
+    clearInterval(tickerInterval);
+}
+
+function toggleTerms() {
+    const isChecked = document.getElementById('terms-checkbox').checked;
+    const termsContainer = document.getElementById('terms-container');
+    isChecked ? termsContainer.classList.remove('hidden') : termsContainer.classList.add('hidden');
+}
+
+function toggleLastWar() {
+    const isChecked = document.getElementById('last-war-checkbox').checked;
+    const lastWarContainer = document.getElementById('last-war-container');
+    const rewardsContainer = document.getElementById('rewards-container');
+    if (isChecked) {
+        lastWarContainer.classList.remove('hidden');
+        if (previousWarData && previousWarData.warId) {
+            rewardsContainer.classList.remove('hidden');
+            loadWarRewards(previousWarData.warId);
+        }
+    } else {
+        lastWarContainer.classList.add('hidden');
+        rewardsContainer.classList.add('hidden');
+    }
+}
+
+function getCachedRewards(warId) {
+    try {
+        const raw = localStorage.getItem(REWARDS_CACHE_PREFIX + warId);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function setCachedRewards(warId, data) {
+    try {
+        localStorage.setItem(REWARDS_CACHE_PREFIX + warId, JSON.stringify(data));
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function loadWarRewards(warId) {
+    const f1NameEl = document.getElementById('reward-f1-name');
+    const f2NameEl = document.getElementById('reward-f2-name');
+    const f1ItemsEl = document.getElementById('reward-f1-items');
+    const f2ItemsEl = document.getElementById('reward-f2-items');
+
+    const cached = getCachedRewards(warId);
+    if (cached) {
+        renderWarRewards(cached);
+        return;
+    }
+
+    f1NameEl.innerText = "Loading...";
+    f2NameEl.innerText = "Loading...";
+    f1ItemsEl.innerHTML = "";
+    f2ItemsEl.innerHTML = "";
+
+    try {
+        const reportRes = await fetch(`https://api.torn.com/v2/faction/${warId}/rankedwarreport?key=${currentApiKey}`);
+        const reportData = await reportRes.json();
+
+        if (reportData.error) {
+            f1NameEl.innerText = "Unable to load rewards";
+            f2NameEl.innerText = "";
+            return;
+        }
+
+        const factions = reportData.rankedwarreport.factions;
+        const itemIds = new Set();
+        factions.forEach(f => {
+            (f.rewards?.items || []).forEach(item => itemIds.add(item.id));
+        });
+
+        const priceMap = {};
+        for (const itemId of itemIds) {
+            try {
+                const priceRes = await fetch(`https://api.torn.com/v2/market/${itemId}/itemmarket?key=${currentApiKey}`);
+                const priceData = await priceRes.json();
+                priceMap[itemId] = priceData?.itemmarket?.item?.average_price ?? null;
+            } catch (e) {
+                priceMap[itemId] = null;
+            }
+        }
+
+        const resultData = {
+            warId: warId,
+            factions: factions.map(f => ({
+                name: f.name,
+                items: (f.rewards?.items || []).map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    avgPrice: priceMap[item.id]
+                }))
+            }))
+        };
+
+        setCachedRewards(warId, resultData);
+        renderWarRewards(resultData);
+    } catch (e) {
+        console.error(e);
+        f1NameEl.innerText = "Unable to load rewards";
+        f2NameEl.innerText = "";
+    }
+}
+
+function renderWarRewards(data) {
+    const f1 = data.factions[0], f2 = data.factions[1];
+    document.getElementById('reward-f1-name').innerText = f1.name;
+    document.getElementById('reward-f2-name').innerText = f2.name;
+
+    const buildRows = (items) => {
+        if (!items.length) return `<tr><td colspan="3">No items awarded</td></tr>`;
+        return items.map(item => {
+            const priceStr = item.avgPrice != null ? "$" + item.avgPrice.toLocaleString() : "N/A";
+            return `<tr><td>${item.quantity}</td><td>${item.name}</td><td>${priceStr}</td></tr>`;
+        }).join('');
+    };
+
+    document.getElementById('reward-f1-items').innerHTML = buildRows(f1.items);
+    document.getElementById('reward-f2-items').innerHTML = buildRows(f2.items);
+}
+
+function getNextMatchmakingTuesday() {
+    const now = new Date();
+    const nextTuesday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    while (nextTuesday.getUTCDay() !== 2) { nextTuesday.setUTCDate(nextTuesday.getUTCDate() + 1); }
+    nextTuesday.setUTCHours(12, 0, 0, 0);
+    if (nextTuesday.getTime() < now.getTime()) { nextTuesday.setUTCDate(nextTuesday.getUTCDate() + 7); }
+    return nextTuesday;
+}
+
+async function startTracking() {
+    const keyInput = document.getElementById('api-key').value.trim();
+    if (keyInput.length < 16) {
+        alert("Please enter a valid Torn API key.");
+        return;
+    }
+    
+    try {
+        const response = await fetch(`https://api.torn.com/faction/?selections=rankedwars&key=${keyInput}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            alert("Invalid API key..");
+            document.getElementById('api-key').value = "";
+            deleteCookie(COOKIE_NAME);
+            return;
+        }
+        
+        currentApiKey = keyInput;
+        setCookie(COOKIE_NAME, keyInput);
+        document.getElementById('setup-area').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('logout-btn').classList.remove('hidden');
+        
+        await updateWarClock();
+        apiInterval = setInterval(updateWarClock, 30000);
+        tickerInterval = setInterval(renderUI, 1000);
+    } catch (e) {
+        alert("Invalid API key..");
+        console.error(e);
+    }
+}
+
+async function updateWarClock() {
+    if (!currentApiKey) return;
+    try {
+        const response = await fetch(`https://api.torn.com/faction/?selections=rankedwars&key=${currentApiKey}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            alert("API key is no longer valid. Please enter a new key.");
+            currentApiKey = "";
+            deleteCookie(COOKIE_NAME);
+            document.getElementById('setup-area').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+            clearInterval(apiInterval);
+            clearInterval(tickerInterval);
+            return;
+        }
+        
+        const sortedIds = Object.keys(data.rankedwars).sort((a, b) => b - a);
+        const warData = data.rankedwars[sortedIds[0]];
+        const isLiveOrScheduled = warData.war.end === 0;
+
+        if (isLiveOrScheduled) {
+            const factions = Object.values(warData.factions);
+            const f1 = factions[0], f2 = factions[1];
+            const now = Math.floor(Date.now() / 1000);
+            const startTime = warData.war.start; 
+            const currentLead = Math.abs(f1.score - f2.score);
+            const currentTargetLead = warData.war.target;
+            const secondsElapsed = Math.max(0, now - startTime); 
+            const gracePeriod = 86400; 
+            
+            let originalTarget;
+            if (secondsElapsed < gracePeriod) {
+                originalTarget = currentTargetLead;
+            } else {
+                const hoursPastGrace = Math.floor((secondsElapsed - gracePeriod) / 3600);
+                const currentIterations = hoursPastGrace + 1;
+                originalTarget = Math.round(currentTargetLead / (1 - (0.01 * currentIterations)));
+            }
+
+            const totalIterationsNeeded = Math.ceil((originalTarget - currentLead) / (originalTarget * 0.01));
+            finishLineTimestamp = startTime + gracePeriod + ((totalIterationsNeeded - 1) * 3600);
+
+            window.currentWarStats = {
+                active: true,
+                lead: currentLead,
+                leader: f1.score > f2.score ? f1.name : f2.name,
+                target: currentTargetLead,
+                original: originalTarget,
+                f1Name: f1.name, f2Name: f2.name,
+                f1Score: f1.score, f2Score: f2.score,
+                startTime: startTime
+            };
+            initialDefaultSet = true;
+        } else {
+            window.currentWarStats = { active: false };
+        }
+
+        const lastWarIndex = isLiveOrScheduled ? 1 : 0;
+        if (sortedIds.length > lastWarIndex) {
+            const prevWarId = sortedIds[lastWarIndex];
+            const prevWar = data.rankedwars[prevWarId];
+            const prevFactions = Object.values(prevWar.factions);
+            previousWarData = {
+                warId: prevWarId,
+                f1Name: prevFactions[0].name, f1Score: prevFactions[0].score,
+                f2Name: prevFactions[1].name, f2Score: prevFactions[1].score,
+                endTime: prevWar.war.end
+            };
+        }
+    } catch (e) { console.error(e); }
+}
+
+function renderUI() {
+    const stats = window.currentWarStats;
+    if (!stats) return;
+
+    if (previousWarData) {
+        document.getElementById('prev-f1-name').innerText = previousWarData.f1Name;
+        document.getElementById('prev-f1-score').innerText = previousWarData.f1Score.toLocaleString();
+        document.getElementById('prev-f2-name').innerText = previousWarData.f2Name;
+        document.getElementById('prev-f2-score').innerText = previousWarData.f2Score.toLocaleString();
+        document.getElementById('prev-war-details').innerText = `Actual End Time: ${new Date(previousWarData.endTime * 1000).toUTCString().replace('GMT', 'TCT')}`;
+    }
+
+    const warElements = document.getElementById('active-war-elements');
+    const noWarMsg = document.getElementById('no-war-message');
+    const termsToggle = document.getElementById('terms-toggle-wrapper');
+
+    if (!stats.active) {
+        warElements.classList.add('hidden');
+        noWarMsg.classList.remove('hidden');
+        termsToggle.classList.add('hidden');
+        return;
+    }
+
+    warElements.classList.remove('hidden');
+    noWarMsg.classList.add('hidden');
+    termsToggle.classList.remove('hidden');
+
+    const now = Math.floor(Date.now() / 1000);
+    const mmTime = getNextMatchmakingTuesday();
+    const mmTS = Math.floor(mmTime.getTime() / 1000);
+
+    const startContainer = document.getElementById('start-timer-container');
+    if (now < stats.startTime) {
+        startContainer.classList.remove('hidden');
+        const sSec = stats.startTime - now;
+        const sh = Math.floor(sSec / 3600), sm = Math.floor((sSec % 3600) / 60), ss = Math.floor(sSec % 60);
+        document.getElementById('start-countdown').innerText = `${sh.toString().padStart(2, '0')}:${sm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`;
+    } else {
+        startContainer.classList.add('hidden');
+    }
+
+    const sec = Math.max(0, finishLineTimestamp - now);
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60);
+    document.getElementById('countdown').innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    document.getElementById('orig-target-display').innerText = `Original Target: ${stats.original.toLocaleString()}`;
+    
+    document.getElementById('f1-name').innerText = stats.f1Name;
+    document.getElementById('f1-score').innerText = stats.f1Score.toLocaleString();
+    document.getElementById('f2-name').innerText = stats.f2Name;
+    document.getElementById('f2-score').innerText = stats.f2Score.toLocaleString();
+    document.getElementById('label-f1').innerText = stats.f1Name;
+    document.getElementById('label-f2').innerText = stats.f2Name;
+    document.getElementById('target-left').innerText = stats.target.toLocaleString();
+    document.getElementById('target-right').innerText = stats.target.toLocaleString();
+
+    const fillL = document.getElementById('fill-left'), fillR = document.getElementById('fill-right');
+    const valL = document.getElementById('val-left'), valR = document.getElementById('val-right');
+    fillL.style.width = "0%"; fillR.style.width = "0%";
+    valL.innerText = ""; valR.innerText = "";
+    const bPct = Math.min(100, (stats.lead / stats.target) * 100).toFixed(1);
+    if (stats.f1Score > stats.f2Score) { fillL.style.width = bPct + "%"; valL.innerText = stats.lead.toLocaleString(); }
+    else if (stats.f2Score > stats.f1Score) { fillR.style.width = bPct + "%"; valR.innerText = stats.lead.toLocaleString(); }
+    
+    document.getElementById('details').innerHTML = `<div class="predicted-finish">Predicted Finish: ${new Date(finishLineTimestamp * 1000).toUTCString().replace('GMT', 'TCT')}</div>`;
+
+    const calculateLeadForHours = (hrs) => {
+        const tFinTS = mmTS - (hrs * 3600);
+        const avail = tFinTS - (stats.startTime + 86400);
+        if (avail < 0) return stats.original;
+        const maxIt = Math.floor(avail / 3600) + 1;
+        return Math.ceil(stats.original - (maxIt * stats.original * 0.01));
+    };
+
+    const leadNeeded = calculateLeadForHours(selectedDeadlineHours);
+    document.getElementById('radio-f1-name').innerText = stats.f1Name;
+    document.getElementById('radio-f2-name').innerText = stats.f2Name;
+    
+    const winnerVal = document.querySelector('input[name="winner"]:checked').value;
+    const conGoalPct = parseInt(document.getElementById('bracket-slider').value);
+    document.getElementById('slider-val-display').innerText = conGoalPct + "%";
+    
+    const wScore = (winnerVal === 'f1') ? stats.f1Score : stats.f2Score;
+    const cScore = (winnerVal === 'f1') ? stats.f2Score : stats.f1Score;
+    const cTarg = Math.round(stats.original * (conGoalPct / 100));
+    const wTarg = Math.max(cTarg, cScore) + leadNeeded;
+
+    const winGoalLabel = document.getElementById('win-slider-val-display');
+    if (winGoalLabel) winGoalLabel.innerText = wTarg.toLocaleString() + " pts";
+
+    const wBarPct = wTarg === 0 ? 100 : Math.min(100, (wScore / wTarg) * 100);
+    const wBar = document.getElementById('win-target-bar');
+    wBar.style.width = wBarPct + "%";
+    document.getElementById('win-target-text').innerText = `${wScore.toLocaleString()} / ${wTarg.toLocaleString()} (${Math.round(wBarPct)}%)`;
+    wScore >= wTarg && wTarg > 0 ? wBar.classList.add('complete-green') : wBar.classList.remove('complete-green');
+
+    const sBar = document.getElementById('winner-status-bar'), sText = document.getElementById('winner-status-text');
+    if (wScore > cScore) { sBar.classList.add('complete-green'); sBar.classList.remove('fail-red'); sText.innerText = "WINNING"; }
+    else { sBar.classList.remove('complete-green'); sBar.classList.add('fail-red'); sText.innerText = "LOSING"; }
+
+    const cBarPct = cTarg === 0 ? 100 : Math.min(100, (cScore / cTarg) * 100);
+    const cBar = document.getElementById('concede-bar');
+    cBar.style.width = cBarPct + "%";
+    document.getElementById('concede-text').innerText = `${cScore.toLocaleString()} / ${cTarg.toLocaleString()} (${Math.round(cBarPct)}%)`;
+    cScore >= cTarg && cTarg > 0 ? cBar.classList.add('complete-green') : cBar.classList.remove('complete-green');
+
+    const goalLead = leadNeeded;
+    const goalTotalIterations = Math.ceil((stats.original - goalLead) / (stats.original * 0.01));
+    const goalFinishTimestamp = stats.startTime + 86400 + ((goalTotalIterations - 1) * 3600);
+    
+    const bSec = mmTS - finishLineTimestamp;
+    const bHrs = (bSec / 3600).toFixed(1);
+    
+    const goalBSec = mmTS - goalFinishTimestamp;
+    const goalBHrs = (goalBSec / 3600).toFixed(1);
+
+    const bDiv = document.getElementById('matchmaking-buffer');
+    const pDiv = document.getElementById('points-required');
+    const dStr = mmTime.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+
+    let statusHTML = `<div style="margin-bottom:15px; line-height: 1.6;">`;
+    if (bSec < 0) {
+        statusHTML += `At the <u>Current Scores</u>, predicted finish is AFTER matchmaking on:<br>Tuesday (${dStr}) at 12:00 TCT<br>`;
+    } else {
+        statusHTML += `At the <u>Current Scores</u>, war ends <span class="${bHrs >= selectedDeadlineHours ? 'buffer-safe' : 'buffer-danger'}">${bHrs} hours</span> before matchmaking.<br>`;
+    }
+
+    if (goalBSec < 0) {
+        statusHTML += `If the <u>Current Goals</u> are met, predicted finish is AFTER matchmaking.`;
+    } else {
+        statusHTML += `If the <u>Current Goals</u> are met, war ends <span class="${goalBHrs >= selectedDeadlineHours ? 'buffer-safe' : 'buffer-danger'}">${goalBHrs} hours</span> before matchmaking.`;
+    }
+    statusHTML += `</div>`;
+    
+    bDiv.innerHTML = statusHTML;
+
+    pDiv.classList.remove('hidden');
+    const getRow = (hrs) => `<tr><td>${hrs} Hour${hrs > 1 ? 's' : ''}</td><td><span class="points-val">${calculateLeadForHours(hrs).toLocaleString()}</span></td><td><input type="radio" name="deadline-pref" value="${hrs}" ${selectedDeadlineHours === hrs ? 'checked' : ''} onchange="selectedDeadlineHours = parseInt(this.value); renderUI();"></td></tr>`;
+
+    pDiv.innerHTML = `<div style="text-align:left; margin-bottom:5px; font-weight:bold; color:#cca3a3;">Select Target Buffer:</div>
+        <table class="deadline-table">
+            <thead><tr><th>Before MM</th><th>Lead Needed</th><th>Set Goal</th></tr></thead>
+            <tbody>${getRow(1)}${getRow(5)}${getRow(12)}</tbody>
+        </table>`;
+}
