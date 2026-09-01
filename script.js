@@ -8,6 +8,7 @@ let initialDefaultSet = false;
 window.currentWarStats = null;
 
 const COOKIE_NAME = "tornApiKey";
+const REWARDS_CACHE_PREFIX = "tornWarRewards_";
 
 function setCookie(name, value, days = 365) {
     const date = new Date();
@@ -52,6 +53,9 @@ function logoutUser() {
     document.getElementById('dashboard').classList.add('hidden');
     document.getElementById('api-key').value = "";
     document.getElementById('logout-btn').classList.add('hidden');
+    document.getElementById('last-war-checkbox').checked = false;
+    document.getElementById('last-war-container').classList.add('hidden');
+    document.getElementById('rewards-container').classList.add('hidden');
     clearInterval(apiInterval);
     clearInterval(tickerInterval);
 }
@@ -65,7 +69,121 @@ function toggleTerms() {
 function toggleLastWar() {
     const isChecked = document.getElementById('last-war-checkbox').checked;
     const lastWarContainer = document.getElementById('last-war-container');
-    isChecked ? lastWarContainer.classList.remove('hidden') : lastWarContainer.classList.add('hidden');
+    const rewardsContainer = document.getElementById('rewards-container');
+    if (isChecked) {
+        lastWarContainer.classList.remove('hidden');
+        if (previousWarData && previousWarData.warId) {
+            rewardsContainer.classList.remove('hidden');
+            loadWarRewards(previousWarData.warId);
+        }
+    } else {
+        lastWarContainer.classList.add('hidden');
+        rewardsContainer.classList.add('hidden');
+    }
+}
+
+function getCachedRewards(warId) {
+    try {
+        const raw = localStorage.getItem(REWARDS_CACHE_PREFIX + warId);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function setCachedRewards(warId, data) {
+    try {
+        localStorage.setItem(REWARDS_CACHE_PREFIX + warId, JSON.stringify(data));
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function loadWarRewards(warId) {
+    const f1NameEl = document.getElementById('reward-f1-name');
+    const f2NameEl = document.getElementById('reward-f2-name');
+    const f1ItemsEl = document.getElementById('reward-f1-items');
+    const f2ItemsEl = document.getElementById('reward-f2-items');
+
+    const cached = getCachedRewards(warId);
+    if (cached) {
+        renderWarRewards(cached);
+        return;
+    }
+
+    f1NameEl.innerText = "Loading...";
+    f2NameEl.innerText = "Loading...";
+    f1ItemsEl.innerHTML = "";
+    f2ItemsEl.innerHTML = "";
+
+    try {
+        const reportRes = await fetch(`https://api.torn.com/v2/faction/${warId}/rankedwarreport?key=${currentApiKey}`);
+        const reportData = await reportRes.json();
+
+        if (reportData.error) {
+            f1NameEl.innerText = "Unable to load rewards";
+            f2NameEl.innerText = "";
+            return;
+        }
+
+        const factions = reportData.rankedwarreport.factions;
+        const itemIds = new Set();
+        factions.forEach(f => {
+            (f.rewards?.items || []).forEach(item => itemIds.add(item.id));
+        });
+
+        const priceMap = {};
+        for (const itemId of itemIds) {
+            try {
+                const priceRes = await fetch(`https://api.torn.com/v2/market/${itemId}/itemmarket?key=${currentApiKey}`);
+                const priceData = await priceRes.json();
+                priceMap[itemId] = priceData?.itemmarket?.item?.average_price ?? null;
+            } catch (e) {
+                priceMap[itemId] = null;
+            }
+        }
+
+        const resultData = {
+            warId: warId,
+            factions: factions.map(f => ({
+                name: f.name,
+                items: (f.rewards?.items || []).map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    avgPrice: priceMap[item.id]
+                }))
+            }))
+        };
+
+        setCachedRewards(warId, resultData);
+        renderWarRewards(resultData);
+    } catch (e) {
+        console.error(e);
+        f1NameEl.innerText = "Unable to load rewards";
+        f2NameEl.innerText = "";
+    }
+}
+
+function renderWarRewards(data) {
+    const f1 = data.factions[0], f2 = data.factions[1];
+    document.getElementById('reward-f1-name').innerText = f1.name;
+    document.getElementById('reward-f2-name').innerText = f2.name;
+
+    const buildRows = (items) => {
+        if (!items.length) return `<tr><td colspan="3">No items awarded</td></tr>`;
+        let total = 0;
+        const rows = items.map(item => {
+            const priceStr = item.avgPrice != null ? "$" + item.avgPrice.toLocaleString() : "N/A";
+            if (item.avgPrice != null) total += item.quantity * item.avgPrice;
+            return `<tr><td>${item.quantity}</td><td>${item.name}</td><td>${priceStr}</td></tr>`;
+        }).join('');
+        const totalRow = `<tr class="rewards-total-row"><td colspan="2">Total</td><td>$${total.toLocaleString()}</td></tr>`;
+        return rows + totalRow;
+    };
+
+    document.getElementById('reward-f1-items').innerHTML = buildRows(f1.items);
+    document.getElementById('reward-f2-items').innerHTML = buildRows(f2.items);
 }
 
 function getNextMatchmakingTuesday() {
@@ -170,9 +288,11 @@ async function updateWarClock() {
 
         const lastWarIndex = isLiveOrScheduled ? 1 : 0;
         if (sortedIds.length > lastWarIndex) {
-            const prevWar = data.rankedwars[sortedIds[lastWarIndex]];
+            const prevWarId = sortedIds[lastWarIndex];
+            const prevWar = data.rankedwars[prevWarId];
             const prevFactions = Object.values(prevWar.factions);
             previousWarData = {
+                warId: prevWarId,
                 f1Name: prevFactions[0].name, f1Score: prevFactions[0].score,
                 f2Name: prevFactions[1].name, f2Score: prevFactions[1].score,
                 endTime: prevWar.war.end
