@@ -172,10 +172,14 @@ function renderWarRewards(data) {
 
     const buildRows = (items) => {
         if (!items.length) return `<tr><td colspan="3">No items awarded</td></tr>`;
-        return items.map(item => {
+        let total = 0;
+        const rows = items.map(item => {
             const priceStr = item.avgPrice != null ? "$" + item.avgPrice.toLocaleString() : "N/A";
+            if (item.avgPrice != null) total += item.quantity * item.avgPrice;
             return `<tr><td>${item.quantity}</td><td>${item.name}</td><td>${priceStr}</td></tr>`;
         }).join('');
+        const totalRow = `<tr class="rewards-total-row"><td colspan="2">Total</td><td>$${total.toLocaleString()}</td></tr>`;
+        return rows + totalRow;
     };
 
     document.getElementById('reward-f1-items').innerHTML = buildRows(f1.items);
